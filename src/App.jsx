@@ -1,74 +1,58 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 
 const ZODIAC_SIGNS = [
-  { symbol: '♈', name: '양자리', en: 'Aries', date: '3.21–4.19' },
-  { symbol: '♉', name: '황소자리', en: 'Taurus', date: '4.20–5.20' },
-  { symbol: '♊', name: '쌍둥이자리', en: 'Gemini', date: '5.21–6.21' },
-  { symbol: '♋', name: '게자리', en: 'Cancer', date: '6.22–7.22' },
-  { symbol: '♌', name: '사자자리', en: 'Leo', date: '7.23–8.22' },
-  { symbol: '♍', name: '처녀자리', en: 'Virgo', date: '8.23–9.22' },
-  { symbol: '♎', name: '천칭자리', en: 'Libra', date: '9.23–10.23' },
-  { symbol: '♏', name: '전갈자리', en: 'Scorpio', date: '10.24–11.22' },
-  { symbol: '♐', name: '사수자리', en: 'Sagittarius', date: '11.23–12.21' },
-  { symbol: '♑', name: '염소자리', en: 'Capricorn', date: '12.22–1.19' },
-  { symbol: '♒', name: '물병자리', en: 'Aquarius', date: '1.20–2.18' },
-  { symbol: '♓', name: '물고기자리', en: 'Pisces', date: '2.19–3.20' },
+  { icon: 'bakery_dining', name: '양자리', en: 'Aries' },
+  { icon: 'agriculture', name: '황소자리', en: 'Taurus' },
+  { icon: 'diversity_3', name: '쌍둥이자리', en: 'Gemini' },
+  { icon: 'waves', name: '게자리', en: 'Cancer' },
+  { icon: 'pets', name: '사자자리', en: 'Leo' },
+  { icon: 'spa', name: '처녀자리', en: 'Virgo' },
+  { icon: 'balance', name: '천칭자리', en: 'Libra' },
+  { icon: 'bug_report', name: '전갈자리', en: 'Scorpio' },
+  { icon: 'architecture', name: '궁수자리', en: 'Sagittarius' },
+  { icon: 'foundation', name: '염소자리', en: 'Capricorn' },
+  { icon: 'opacity', name: '물병자리', en: 'Aquarius' },
+  { icon: 'set_meal', name: '물고기자리', en: 'Pisces' },
 ]
 
-const MBTI_TYPES = [
-  'INTJ', 'INTP', 'ENTJ', 'ENTP',
-  'INFJ', 'INFP', 'ENFJ', 'ENFP',
-  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-  'ISTP', 'ISFP', 'ESTP', 'ESFP',
+const MBTI_PAIRS = [
+  { key: 'ei', options: ['E', 'I'] },
+  { key: 'sn', options: ['S', 'N'] },
+  { key: 'tf', options: ['T', 'F'] },
+  { key: 'jp', options: ['J', 'P'] },
 ]
-
-const MBTI_COLORS = {
-  INT: 'from-violet-600 to-purple-800',
-  ENT: 'from-blue-600 to-indigo-800',
-  INF: 'from-emerald-600 to-teal-800',
-  ENF: 'from-rose-600 to-pink-800',
-  IST: 'from-amber-600 to-orange-800',
-  EST: 'from-cyan-600 to-sky-800',
-  ISF: 'from-lime-600 to-green-800',
-  ESF: 'from-fuchsia-600 to-pink-800',
-}
-
-function getMbtiColor(mbti) {
-  const key = mbti.slice(0, 3)
-  return MBTI_COLORS[key] || 'from-slate-600 to-slate-800'
-}
 
 function StarField() {
-  const stars = Array.from({ length: 80 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2 + 0.5,
-    delay: Math.random() * 4,
-    duration: Math.random() * 3 + 2,
-  }))
+  const starsRef = useRef([])
+  if (starsRef.current.length === 0) {
+    starsRef.current = Array.from({ length: 150 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 2 + 0.5,
+      delay: Math.random() * 4,
+      duration: Math.random() * 3 + 2,
+    }))
+  }
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {stars.map((star) => (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.4, overflow: 'hidden' }}>
+      {starsRef.current.map((star) => (
         <motion.div
           key={star.id}
-          className="absolute rounded-full bg-white"
           style={{
+            position: 'absolute',
             left: `${star.x}%`,
             top: `${star.y}%`,
             width: star.size,
             height: star.size,
+            borderRadius: '50%',
+            background: 'white',
           }}
-          animate={{ opacity: [0.2, 1, 0.2] }}
-          transition={{
-            duration: star.duration,
-            delay: star.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          animate={{ opacity: [0.2, 0.8, 0.2], scale: [0.8, 1.1, 0.8] }}
+          transition={{ duration: star.duration, delay: star.delay, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
     </div>
@@ -77,12 +61,25 @@ function StarField() {
 
 export default function App() {
   const [selectedZodiac, setSelectedZodiac] = useState(null)
-  const [selectedMbti, setSelectedMbti] = useState(null)
+  const [mbti, setMbti] = useState({ ei: null, sn: null, tf: null, jp: null })
   const [book, setBook] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const selectedMbti = ['ei', 'sn', 'tf', 'jp'].every(k => mbti[k])
+    ? `${mbti.ei}${mbti.sn}${mbti.tf}${mbti.jp}`
+    : null
   const canRecommend = selectedZodiac !== null && selectedMbti !== null
+
+  function toggleMbti(key, value) {
+    setMbti(prev => ({ ...prev, [key]: value }))
+    setBook(null)
+  }
+
+  function handleZodiacSelect(zodiac) {
+    setSelectedZodiac(zodiac)
+    setBook(null)
+  }
 
   async function handleRecommend() {
     if (!canRecommend) return
@@ -106,155 +103,162 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
       <StarField />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 py-12">
-        {/* 헤더 */}
-        <motion.div
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: -24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-        >
-          <div className="text-5xl mb-3">✦</div>
-          <h1 className="text-4xl font-bold text-gradient mb-2">BookStar</h1>
-          <p className="text-slate-400 text-base">
-            별자리와 MBTI로 찾는 나만의 책
-          </p>
-        </motion.div>
+      {/* 상단 앱바 */}
+      <header style={{
+        background: 'rgba(16, 20, 21, 0.8)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 24px',
+        height: '64px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '24px' }}>auto_awesome</span>
+          <h1 className="font-serif" style={{
+            fontSize: '24px',
+            fontWeight: 600,
+            color: '#cebdff',
+            textShadow: '0 0 8px rgba(206,189,255,0.8)',
+            margin: 0,
+          }}>별들의 도서관</h1>
+        </div>
+        <span className="material-symbols-outlined" style={{ color: '#cbc3d5', fontSize: '24px', cursor: 'pointer' }}>notifications</span>
+      </header>
 
-        {/* 별자리 선택 */}
-        <motion.section
-          className="mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        >
-          <h2 className="text-lg font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="text-purple-400">★</span> 나의 별자리
-            {selectedZodiac && (
-              <span className="ml-auto text-sm font-normal text-purple-300">
-                {selectedZodiac.symbol} {selectedZodiac.name}
-              </span>
-            )}
+      {/* 메인 컨텐츠 */}
+      <main style={{ marginTop: '64px', padding: '24px 24px 120px', maxWidth: '512px', margin: '64px auto 0' }}>
+
+        {/* 별자리 섹션 */}
+        <section style={{ marginTop: '32px' }}>
+          <h2 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#e0e3e5', marginBottom: '16px' }}>
+            당신의 별자리를 선택하세요
           </h2>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
             {ZODIAC_SIGNS.map((zodiac, i) => (
               <motion.button
                 key={zodiac.en}
-                onClick={() => setSelectedZodiac(zodiac)}
-                className={`card-cosmic rounded-xl p-3 flex flex-col items-center gap-1 cursor-pointer transition-all duration-200 ${
-                  selectedZodiac?.en === zodiac.en
-                    ? 'border-purple-400 glow-purple bg-purple-900/40'
-                    : 'hover:border-purple-500/50 hover:bg-purple-900/20'
-                }`}
+                onClick={() => handleZodiacSelect(zodiac)}
+                className={`glass-card${selectedZodiac?.en === zodiac.en ? ' active' : ''}`}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  aspectRatio: '1',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  border: 'none',
+                }}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.05 * i }}
+                transition={{ duration: 0.3, delay: 0.04 * i }}
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <span className="text-2xl">{zodiac.symbol}</span>
-                <span className="text-xs text-slate-300 font-medium">{zodiac.name}</span>
-                <span className="text-[10px] text-slate-500">{zodiac.date}</span>
+                <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '28px', marginBottom: '4px' }}>
+                  {zodiac.icon}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#e0e3e5', lineHeight: '16px' }}>
+                  {zodiac.name}
+                </span>
               </motion.button>
             ))}
           </div>
-        </motion.section>
+        </section>
 
-        {/* MBTI 선택 */}
-        <motion.section
-          className="mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <h2 className="text-lg font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="text-pink-400">✦</span> 나의 MBTI
-            {selectedMbti && (
-              <span className="ml-auto text-sm font-normal text-pink-300">
-                {selectedMbti}
-              </span>
-            )}
+        {/* MBTI 섹션 */}
+        <section style={{ marginTop: '32px' }}>
+          <h2 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#e0e3e5', marginBottom: '16px' }}>
+            당신의 MBTI는 무엇인가요?
           </h2>
-          <div className="grid grid-cols-4 gap-2">
-            {MBTI_TYPES.map((mbti, i) => (
-              <motion.button
-                key={mbti}
-                onClick={() => setSelectedMbti(mbti)}
-                className={`relative rounded-xl py-3 px-2 text-sm font-bold cursor-pointer transition-all duration-200 overflow-hidden ${
-                  selectedMbti === mbti
-                    ? 'text-white glow-pink'
-                    : 'text-slate-300 card-cosmic hover:text-white'
-                }`}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.03 * i }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                {selectedMbti === mbti && (
-                  <motion.div
-                    className={`absolute inset-0 bg-gradient-to-br ${getMbtiColor(mbti)} opacity-80`}
-                    layoutId="mbti-bg"
-                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">{mbti}</span>
-              </motion.button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {MBTI_PAIRS.map(({ key, options }) => (
+              <div key={key} style={{ display: 'flex', gap: '12px' }}>
+                {options.map(option => {
+                  const isActive = mbti[key] === option
+                  return (
+                    <motion.button
+                      key={option}
+                      onClick={() => toggleMbti(key, option)}
+                      className={`glass-card${isActive ? ' mbti-active' : ''}`}
+                      style={{
+                        flex: 1,
+                        padding: '16px',
+                        borderRadius: '12px',
+                        fontSize: '24px',
+                        fontWeight: 600,
+                        fontFamily: 'Noto Serif KR, serif',
+                        cursor: 'pointer',
+                        border: isActive ? '1px solid #cebdff' : undefined,
+                        color: isActive ? '#390094' : '#e0e3e5',
+                        transition: 'all 0.2s ease',
+                      }}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {option}
+                    </motion.button>
+                  )
+                })}
+              </div>
             ))}
           </div>
-        </motion.section>
+          {selectedMbti && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{ textAlign: 'center', color: '#cebdff', fontSize: '14px', marginTop: '12px', fontWeight: 600 }}
+            >
+              {selectedMbti}
+            </motion.p>
+          )}
+        </section>
 
-        {/* 도서 추천 버튼 */}
-        <motion.div
-          className="flex justify-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.45 }}
+        {/* 추천 버튼 */}
+        <motion.button
+          onClick={handleRecommend}
+          disabled={!canRecommend || loading}
+          className="primary-gradient-btn"
+          style={{
+            width: '100%',
+            padding: '16px',
+            borderRadius: '9999px',
+            fontSize: '18px',
+            fontWeight: 700,
+            color: 'white',
+            marginTop: '32px',
+            border: 'none',
+          }}
+          whileHover={canRecommend && !loading ? { scale: 1.02 } : {}}
+          whileTap={canRecommend && !loading ? { scale: 0.97 } : {}}
         >
-          <motion.button
-            onClick={handleRecommend}
-            disabled={!canRecommend}
-            className={`relative px-12 py-4 rounded-2xl text-lg font-bold transition-all duration-300 overflow-hidden ${
-              canRecommend
-                ? 'text-white cursor-pointer'
-                : 'text-slate-500 cursor-not-allowed card-cosmic'
-            }`}
-            whileHover={canRecommend ? { scale: 1.05 } : {}}
-            whileTap={canRecommend ? { scale: 0.97 } : {}}
-          >
-            {canRecommend && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600"
-                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                style={{ backgroundSize: '200% 200%' }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2">
-              <span>✦</span>
-              <span>도서 추천받기</span>
-              <span>✦</span>
-            </span>
-          </motion.button>
-        </motion.div>
+          {loading ? '분석 중...' : '추천 받기'}
+        </motion.button>
 
         {/* 안내 문구 */}
         <AnimatePresence>
           {!canRecommend && !loading && !book && (
             <motion.p
-              className="text-center text-slate-600 text-sm mt-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              style={{ textAlign: 'center', color: 'rgba(203,195,213,0.5)', fontSize: '14px', marginTop: '12px' }}
             >
               {!selectedZodiac && !selectedMbti
                 ? '별자리와 MBTI를 선택해주세요'
                 : !selectedZodiac
                 ? '별자리를 선택해주세요'
-                : 'MBTI를 선택해주세요'}
+                : 'MBTI를 모두 선택해주세요'}
             </motion.p>
           )}
         </AnimatePresence>
@@ -263,19 +267,20 @@ export default function App() {
         <AnimatePresence>
           {loading && (
             <motion.div
-              className="flex flex-col items-center mt-8 gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '24px', gap: '12px' }}
             >
-              <motion.div
-                className="text-3xl"
+              <motion.span
+                className="material-symbols-outlined"
+                style={{ color: '#cebdff', fontSize: '32px' }}
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               >
-                ✦
-              </motion.div>
-              <p className="text-slate-400 text-sm">별자리와 MBTI를 분석 중...</p>
+                auto_awesome
+              </motion.span>
+              <p style={{ color: '#cbc3d5', fontSize: '14px' }}>별자리와 MBTI를 분석 중...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -284,10 +289,10 @@ export default function App() {
         <AnimatePresence>
           {error && (
             <motion.p
-              className="text-center text-red-400 text-sm mt-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              style={{ textAlign: 'center', color: '#ffb4ab', fontSize: '14px', marginTop: '16px' }}
             >
               {error}
             </motion.p>
@@ -298,31 +303,82 @@ export default function App() {
         <AnimatePresence>
           {book && (
             <motion.div
-              className="mt-8 card-cosmic rounded-2xl p-6 border border-purple-500/30"
+              className="glass-card"
+              style={{ borderRadius: '16px', padding: '24px', marginTop: '24px', borderColor: 'rgba(206,189,255,0.3)' }}
               initial={{ opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-purple-400">✦</span>
-                <span className="text-slate-400 text-sm">
-                  {selectedZodiac?.symbol} {selectedZodiac?.name} × {selectedMbti} 맞춤 추천
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '20px' }}>auto_stories</span>
+                <span style={{ color: '#cbc3d5', fontSize: '13px' }}>
+                  {selectedZodiac?.name} × {selectedMbti} 맞춤 추천
                 </span>
               </div>
-              <h3 className="text-xl font-bold text-white mb-1">{book.title}</h3>
-              <p className="text-slate-400 text-sm mb-4">{book.author}</p>
-              <p className="text-slate-300 text-sm leading-relaxed">{book.reason}</p>
+              <h3 className="font-serif" style={{ fontSize: '20px', fontWeight: 700, color: '#e0e3e5', margin: '0 0 6px' }}>
+                {book.title}
+              </h3>
+              <p style={{ color: '#cbc3d5', fontSize: '14px', margin: '0 0 16px' }}>{book.author}</p>
+              <p style={{ color: '#e0e3e5', fontSize: '15px', lineHeight: '1.7', margin: 0 }}>{book.reason}</p>
               <button
                 onClick={() => { setBook(null); setError(null) }}
-                className="mt-5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                style={{
+                  marginTop: '20px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(203,195,213,0.5)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
               >
                 다시 추천받기
               </button>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
+
+      {/* 하단 네비게이션 */}
+      <nav style={{
+        background: 'rgba(25, 28, 30, 0.6)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        zIndex: 50,
+        borderRadius: '16px 16px 0 0',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        height: '72px',
+        paddingBottom: '8px',
+      }}>
+        {[
+          { icon: 'auto_stories', label: '운명', filled: true, active: true },
+          { icon: 'explore', label: '탐색', active: false },
+          { icon: 'bookmarks', label: '서재', active: false },
+          { icon: 'settings', label: '설정', active: false },
+        ].map(({ icon, label, filled, active }) => (
+          <a key={label} href="#" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+            color: active ? '#cebdff' : '#948e9f',
+            textDecoration: 'none',
+            transition: 'color 0.2s',
+          }}>
+            <span className={filled ? 'material-symbols-filled' : 'material-symbols-outlined'} style={{ fontSize: '24px' }}>
+              {icon}
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>{label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   )
 }
