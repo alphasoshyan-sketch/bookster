@@ -78,12 +78,31 @@ function StarField() {
 export default function App() {
   const [selectedZodiac, setSelectedZodiac] = useState(null)
   const [selectedMbti, setSelectedMbti] = useState(null)
+  const [book, setBook] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const canRecommend = selectedZodiac !== null && selectedMbti !== null
 
-  function handleRecommend() {
+  async function handleRecommend() {
     if (!canRecommend) return
-    alert(`${selectedZodiac.name} + ${selectedMbti} 맞춤 도서를 추천해드릴게요!`)
+    setLoading(true)
+    setBook(null)
+    setError(null)
+    try {
+      const res = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zodiac: selectedZodiac.name, mbti: selectedMbti }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '오류가 발생했습니다.')
+      setBook(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -224,7 +243,7 @@ export default function App() {
 
         {/* 안내 문구 */}
         <AnimatePresence>
-          {!canRecommend && (
+          {!canRecommend && !loading && !book && (
             <motion.p
               className="text-center text-slate-600 text-sm mt-4"
               initial={{ opacity: 0 }}
@@ -237,6 +256,70 @@ export default function App() {
                 ? '별자리를 선택해주세요'
                 : 'MBTI를 선택해주세요'}
             </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* 로딩 */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div
+              className="flex flex-col items-center mt-8 gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="text-3xl"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+              >
+                ✦
+              </motion.div>
+              <p className="text-slate-400 text-sm">별자리와 MBTI를 분석 중...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 에러 */}
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              className="text-center text-red-400 text-sm mt-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* 도서 추천 결과 */}
+        <AnimatePresence>
+          {book && (
+            <motion.div
+              className="mt-8 card-cosmic rounded-2xl p-6 border border-purple-500/30"
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-purple-400">✦</span>
+                <span className="text-slate-400 text-sm">
+                  {selectedZodiac?.symbol} {selectedZodiac?.name} × {selectedMbti} 맞춤 추천
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-1">{book.title}</h3>
+              <p className="text-slate-400 text-sm mb-4">{book.author}</p>
+              <p className="text-slate-300 text-sm leading-relaxed">{book.reason}</p>
+              <button
+                onClick={() => { setBook(null); setError(null) }}
+                className="mt-5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                다시 추천받기
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
