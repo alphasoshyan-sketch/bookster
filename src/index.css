@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #050714;
+    color: #e2e8f0;
+    font-family: 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #a78bfa, #e879f9, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 24px rgba(139, 92, 246, 0.5), 0 0 60px rgba(139, 92, 246, 0.15);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 24px rgba(232, 121, 249, 0.5), 0 0 60px rgba(232, 121, 249, 0.15);
+  }
+
+  .card-cosmic {
+    background: linear-gradient(135deg, rgba(15, 21, 53, 0.85), rgba(22, 29, 71, 0.75));
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    backdrop-filter: blur(12px);
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
