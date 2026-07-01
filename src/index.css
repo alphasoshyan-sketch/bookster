@@ -68,6 +68,47 @@
     cursor: not-allowed;
   }
 
+  .mystical-border {
+    position: relative;
+  }
+
+  .mystical-border::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(45deg, #cebdff, transparent, #ffe16d, transparent);
+    z-index: -1;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .mbti-badge {
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  }
+
+  .star-point {
+    animation: pulse-star 3s infinite ease-in-out;
+  }
+
+  @keyframes pulse-star {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+  }
+
+  .orbit-ring-outer {
+    animation: orbit-spin 20s linear infinite;
+  }
+
+  .orbit-ring-inner {
+    animation: orbit-spin 15s linear infinite reverse;
+  }
+
+  @keyframes orbit-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   .font-serif {
     font-family: 'Noto Serif KR', serif;
   }
