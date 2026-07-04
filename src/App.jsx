@@ -215,6 +215,20 @@ function OnboardingPage({ onStart }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
+        <div style={{
+          width: '100%',
+          padding: '10px 16px',
+          marginBottom: '16px',
+          textAlign: 'center',
+          background: 'rgba(255, 191, 73, 0.16)',
+          color: '#ffd58a',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          fontSize: '14px',
+          fontWeight: 600,
+          backdropFilter: 'blur(8px)',
+        }}>
+          이 웹페이지는 현재 개발중입니다.
+        </div>
         <section style={{ width: '100%', maxWidth: '448px', padding: '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
           {/* 책 히어로 */}
@@ -527,9 +541,9 @@ export default function App() {
         body: JSON.stringify({ zodiac: selectedZodiac.name, mbti: selectedMbti }),
       })
       const text = await res.text()
-      if (!text) throw new Error('API 응답이 비어있습니다. 포트 8788로 접속했는지 확인해주세요.')
+      if (!text) throw new Error('추천 서비스로부터 응답을 받지 못했습니다. 잠시 후 다시 시도해주세요.')
       const data = JSON.parse(text)
-      if (!res.ok) throw new Error(data.error || '오류가 발생했습니다.')
+      if (!res.ok) throw new Error(data.error || '추천 요청 중 오류가 발생했습니다.')
       setBooks(data)
       setPage('result')
     } catch (e) {
