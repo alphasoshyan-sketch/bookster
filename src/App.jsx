@@ -395,6 +395,26 @@ function BookCover({ title, coverUrl, loading }) {
   )
 }
 
+function buildFallbackBooks(zodiac, mbti) {
+  return [
+    {
+      title: '코스모스',
+      author: '칼 세이건',
+      reason: `${zodiac}의 호기심과 ${mbti}의 탐구심을 함께 끌어올려 주는 과학 교양서입니다. 복잡한 우주를 쉽게 풀어내며 생각의 폭을 넓혀줍니다.`,
+    },
+    {
+      title: '아몬드',
+      author: '손원평',
+      reason: `${zodiac}의 감수성과 ${mbti}의 깊은 내면 성향을 잘 살려주는 소설입니다. 인간의 마음을 정교하게 그려내며 여운을 남깁니다.`,
+    },
+    {
+      title: '나는 나로 살기로 했다',
+      author: '김수현',
+      reason: `${zodiac}의 자신만의 길을 찾고 싶은 마음과 ${mbti}의 자기 이해 욕구를 잘 반영한 자기계발서입니다. 삶의 방향을 정리하는 데 도움이 됩니다.`,
+    },
+  ]
+}
+
 function ResultPage({ books, zodiac, mbti, onReset }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
 
@@ -547,7 +567,10 @@ export default function App() {
       setBooks(data)
       setPage('result')
     } catch (e) {
-      setError(e.message)
+      const fallbackBooks = buildFallbackBooks(selectedZodiac.name, selectedMbti)
+      setBooks(fallbackBooks)
+      setPage('result')
+      setError('추천 API가 없어 기본 추천 결과로 표시합니다.')
     } finally {
       setLoading(false)
     }
