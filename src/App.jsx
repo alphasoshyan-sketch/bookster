@@ -28,7 +28,11 @@ function StarCanvas() {
   const canvasRef = useRef(null)
   useEffect(() => {
     const canvas = canvasRef.current
+    if (!canvas || typeof window === 'undefined') return undefined
+
     const ctx = canvas.getContext('2d')
+    if (!ctx) return undefined
+
     let animId
     const stars = []
 
