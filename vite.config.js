@@ -1,6 +1,25 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { findLatestCover } from './functions/api/_bookCover.js'
+
+async function attachLatestCovers(books, env) {
+  await Promise.all(
+    books.map(async book => {
+      try {
+        const best = await findLatestCover(book.title, book.author, env)
+        if (best) {
+          book.coverUrl = best.coverUrl
+          book.coverSource = best.source
+          book.pubDate = best.pubDate
+        }
+      } catch {
+        // 표지 검색 실패는 무시하고 프론트엔드 폴백(Google Books 등)에 맡긴다
+      }
+    })
+  )
+  return books
+}
 
 function buildFallbackBooks(zodiac, mbti) {
   return [
@@ -55,11 +74,14 @@ export default defineConfig(({ mode }) => {
                   return
                 }
 
+                const devEnv = { ALADIN_TTB_KEY: process.env.ALADIN_TTB_KEY }
+
                 const apiKey = process.env.OPENAI_API_KEY
                 if (!apiKey) {
+                  const fallbackBooks = await attachLatestCovers(buildFallbackBooks(zodiac, mbti), devEnv)
                   res.statusCode = 200
                   res.setHeader('Content-Type', 'application/json')
-                  res.end(JSON.stringify(buildFallbackBooks(zodiac, mbti)))
+                  res.end(JSON.stringify(fallbackBooks))
                   return
                 }
 
@@ -110,7 +132,7 @@ export default defineConfig(({ mode }) => {
                 const content = data.choices?.[0]?.message?.content?.trim() || ''
 
                 try {
-                  const books = JSON.parse(content)
+                  const books = await attachLatestCovers(JSON.parse(content), devEnv)
                   res.statusCode = 200
                   res.setHeader('Content-Type', 'application/json')
                   res.end(JSON.stringify(books))

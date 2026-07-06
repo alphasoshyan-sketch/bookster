@@ -1,3 +1,23 @@
+import { findLatestCover } from './_bookCover.js'
+
+async function attachLatestCovers(books, env) {
+  await Promise.all(
+    books.map(async book => {
+      try {
+        const best = await findLatestCover(book.title, book.author, env)
+        if (best) {
+          book.coverUrl = best.coverUrl
+          book.coverSource = best.source
+          book.pubDate = best.pubDate
+        }
+      } catch {
+        // 표지 검색 실패는 무시하고 프론트엔드 폴백(Google Books 등)에 맡긴다
+      }
+    })
+  )
+  return books
+}
+
 function buildFallbackBooks(zodiac, mbti) {
   return [
     {
@@ -29,7 +49,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (!env.OPENAI_API_KEY) {
-    return new Response(JSON.stringify(buildFallbackBooks(zodiac, mbti)), {
+    const fallbackBooks = await attachLatestCovers(buildFallbackBooks(zodiac, mbti), env)
+    return new Response(JSON.stringify(fallbackBooks), {
       headers: { 'Content-Type': 'application/json' },
     })
   }
@@ -81,7 +102,7 @@ export async function onRequestPost({ request, env }) {
   const content = data.choices[0].message.content.trim()
 
   try {
-    const books = JSON.parse(content)
+    const books = await attachLatestCovers(JSON.parse(content), env)
     return new Response(JSON.stringify(books), {
       headers: { 'Content-Type': 'application/json' },
     })

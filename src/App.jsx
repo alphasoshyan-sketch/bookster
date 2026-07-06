@@ -423,7 +423,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
 
   useEffect(() => {
-    Promise.all(books.map(b => fetchCover(b.title, b.author))).then(setCovers)
+    Promise.all(books.map(b => b.coverUrl || fetchCover(b.title, b.author))).then(setCovers)
   }, [books])
 
   return (
