@@ -1,4 +1,7 @@
 import { findLatestCover } from './_bookCover.js'
+import { CORS_HEADERS, handleOptions } from './_cors.js'
+
+export const onRequestOptions = handleOptions
 
 async function attachLatestCovers(books, env) {
   await Promise.all(
@@ -44,14 +47,14 @@ export async function onRequestPost({ request, env }) {
   if (!zodiac || !mbti) {
     return new Response(JSON.stringify({ error: '별자리와 MBTI를 모두 입력해주세요.' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 
   if (!env.OPENAI_API_KEY) {
     const fallbackBooks = await attachLatestCovers(buildFallbackBooks(zodiac, mbti), env)
     return new Response(JSON.stringify(fallbackBooks), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 
@@ -94,7 +97,7 @@ export async function onRequestPost({ request, env }) {
   if (!response.ok) {
     return new Response(JSON.stringify({ error: 'OpenAI API 호출에 실패했습니다.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 
@@ -104,12 +107,12 @@ export async function onRequestPost({ request, env }) {
   try {
     const books = await attachLatestCovers(JSON.parse(content), env)
     return new Response(JSON.stringify(books), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   } catch {
     return new Response(JSON.stringify({ error: '응답 파싱에 실패했습니다.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 }
