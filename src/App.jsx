@@ -429,17 +429,17 @@ async function fetchCover(title, author) {
   return null
 }
 
-function BookCover({ title, coverUrl, loading }) {
+function BookCover({ title, coverUrl, loading, width = 100, height = 148, rotate = true }) {
   return (
     <div style={{
-      width: '100px', height: '148px', flexShrink: 0, borderRadius: '8px',
-      overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', transform: 'rotate(-2deg)',
+      width: `${width}px`, height: `${height}px`, flexShrink: 0, borderRadius: '8px',
+      overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', transform: rotate ? 'rotate(-2deg)' : 'none',
       background: 'linear-gradient(135deg, #9d7bff 0%, #390094 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
     }}>
       {loading && (
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #3d2080, #1a0050)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <motion.span className="material-symbols-outlined" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '32px' }}
+          <motion.span className="material-symbols-outlined" style={{ color: 'rgba(255,255,255,0.4)', fontSize: `${Math.round(width * 0.32)}px` }}
             animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>
             auto_stories
           </motion.span>
@@ -456,9 +456,9 @@ function BookCover({ title, coverUrl, loading }) {
         />
       )}
       {!loading && !coverUrl && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '10px' }}>
-          <span className="material-symbols-filled" style={{ color: 'rgba(255,255,255,0.8)', fontSize: '32px' }}>auto_stories</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '9px', textAlign: 'center', fontFamily: 'Noto Serif KR, serif', lineHeight: 1.3 }}>{title}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px' }}>
+          <span className="material-symbols-filled" style={{ color: 'rgba(255,255,255,0.8)', fontSize: `${Math.round(width * 0.32)}px` }}>auto_stories</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '8px', textAlign: 'center', fontFamily: 'Noto Serif KR, serif', lineHeight: 1.3 }}>{title}</span>
         </div>
       )}
     </div>
@@ -468,21 +468,218 @@ function BookCover({ title, coverUrl, loading }) {
 function buildFallbackBooks(zodiac, mbti) {
   return [
     {
-      title: '코스모스',
-      author: '칼 세이건',
-      reason: `${zodiac}의 호기심과 ${mbti}의 탐구심을 함께 끌어올려 주는 과학 교양서입니다. 복잡한 우주를 쉽게 풀어내며 생각의 폭을 넓혀줍니다.`,
-    },
-    {
       title: '아몬드',
       author: '손원평',
+      category: 'korean',
       reason: `${zodiac}의 감수성과 ${mbti}의 깊은 내면 성향을 잘 살려주는 소설입니다. 인간의 마음을 정교하게 그려내며 여운을 남깁니다.`,
     },
     {
       title: '나는 나로 살기로 했다',
       author: '김수현',
+      category: 'korean',
       reason: `${zodiac}의 자신만의 길을 찾고 싶은 마음과 ${mbti}의 자기 이해 욕구를 잘 반영한 자기계발서입니다. 삶의 방향을 정리하는 데 도움이 됩니다.`,
     },
+    {
+      title: '채식주의자',
+      author: '한강',
+      category: 'korean',
+      reason: `${zodiac}의 예민한 감각과 ${mbti}의 내면 탐구 성향이 만나 깊이 몰입할 수 있는 소설입니다. 강렬한 이미지와 여운이 오래 남습니다.`,
+    },
+    {
+      title: '82년생 김지영',
+      author: '조남주',
+      category: 'korean',
+      reason: `${zodiac}의 공감 능력과 ${mbti}의 현실 인식 성향이 맞닿아 있는 소설입니다. 한 사람의 삶을 통해 우리 사회를 되돌아보게 합니다.`,
+    },
+    {
+      title: '언어의 온도',
+      author: '이기주',
+      category: 'korean',
+      reason: `${zodiac}의 섬세한 표현력과 ${mbti}의 말과 관계에 대한 고민을 어루만져 주는 에세이입니다. 짧은 글마다 따뜻한 여운이 남습니다.`,
+    },
+    {
+      title: '완전한 행복',
+      author: '정유정',
+      category: 'korean',
+      reason: `${zodiac}의 몰입력과 ${mbti}의 인간 심리에 대한 호기심을 자극하는 스릴러입니다. 긴장감 있는 전개로 단숨에 읽히는 작품입니다.`,
+    },
+    {
+      title: '죽고 싶지만 떡볶이는 먹고 싶어',
+      author: '백세희',
+      category: 'korean',
+      reason: `${zodiac}의 솔직한 감정 표현과 ${mbti}의 자기 이해 욕구에 맞닿아 있는 에세이입니다. 담담한 고백이 위로를 건넵니다.`,
+    },
+    {
+      title: '불편한 편의점',
+      author: '김호연',
+      category: 'korean',
+      reason: `${zodiac}의 따뜻한 시선과 ${mbti}의 사람에 대한 관심을 자극하는 소설입니다. 평범한 일상 속 온기를 잔잔하게 그려냅니다.`,
+    },
+    {
+      title: '여행의 이유',
+      author: '김영하',
+      category: 'korean',
+      reason: `${zodiac}의 자유로운 기질과 ${mbti}의 사색적인 면모를 함께 채워주는 에세이입니다. 떠남과 머묾에 대한 통찰을 전합니다.`,
+    },
+    {
+      title: '지구 끝의 온실',
+      author: '김초엽',
+      category: 'korean',
+      reason: `${zodiac}의 상상력과 ${mbti}의 논리적 세계관 구축 욕구를 동시에 만족시키는 SF 소설입니다. 희망을 이야기하는 방식이 인상적입니다.`,
+    },
+    {
+      title: '코스모스',
+      author: '칼 세이건',
+      category: 'foreign',
+      reason: `${zodiac}의 호기심과 ${mbti}의 탐구심을 함께 끌어올려 주는 과학 교양서입니다. 복잡한 우주를 쉽게 풀어내며 생각의 폭을 넓혀줍니다.`,
+    },
+    {
+      title: '미움받을 용기',
+      author: '기시미 이치로',
+      category: 'foreign',
+      reason: `${zodiac}의 관계 고민과 ${mbti}의 자기 성찰 욕구에 맞닿아 있는 책입니다. 아들러 심리학을 통해 삶의 방향을 다시 세우게 해줍니다.`,
+    },
+    {
+      title: '사피엔스',
+      author: '유발 하라리',
+      category: 'foreign',
+      reason: `${zodiac}의 큰 그림을 보는 시야와 ${mbti}의 지적 호기심을 자극하는 인문 교양서입니다. 인류사를 새로운 시각으로 조망합니다.`,
+    },
+    {
+      title: '데미안',
+      author: '헤르만 헤세',
+      category: 'foreign',
+      reason: `${zodiac}의 내면 성장 욕구와 ${mbti}의 자아 탐구 성향에 깊이 와닿는 성장 소설입니다. 자기 자신에게 이르는 길을 그려냅니다.`,
+    },
+    {
+      title: '1984',
+      author: '조지 오웰',
+      category: 'foreign',
+      reason: `${zodiac}의 비판적 시각과 ${mbti}의 체계적 사고를 자극하는 고전입니다. 시대를 초월한 통찰로 여전히 강렬한 메시지를 전합니다.`,
+    },
+    {
+      title: '노르웨이의 숲',
+      author: '무라카미 하루키',
+      category: 'foreign',
+      reason: `${zodiac}의 감성적인 면과 ${mbti}의 내밀한 정서를 건드리는 소설입니다. 상실과 사랑을 섬세한 문체로 그려냅니다.`,
+    },
+    {
+      title: '마인드셋',
+      author: '캐럴 드웩',
+      category: 'foreign',
+      reason: `${zodiac}의 성장 욕구와 ${mbti}의 자기계발 성향에 실질적인 도움을 주는 심리학 도서입니다. 사고방식의 전환을 이끌어냅니다.`,
+    },
+    {
+      title: '어린 왕자',
+      author: '앙투안 드 생텍쥐페리',
+      category: 'foreign',
+      reason: `${zodiac}의 순수한 감성과 ${mbti}의 본질을 꿰뚫는 사고를 자극하는 우화입니다. 짧지만 깊은 여운을 남기는 고전입니다.`,
+    },
+    {
+      title: '총, 균, 쇠',
+      author: '재레드 다이아몬드',
+      category: 'foreign',
+      reason: `${zodiac}의 넓은 시야와 ${mbti}의 인과관계를 파헤치는 성향을 만족시키는 인문 교양서입니다. 문명사를 새로운 관점으로 조망합니다.`,
+    },
+    {
+      title: '죽음의 수용소에서',
+      author: '빅터 프랭클',
+      category: 'foreign',
+      reason: `${zodiac}의 삶에 대한 깊은 사유와 ${mbti}의 의미 탐구 욕구에 맞닿아 있는 책입니다. 극한 상황 속 인간 존엄을 이야기합니다.`,
+    },
   ]
+}
+
+function BookTile({ book, cover, loading, number, isExpanded, onClick, delay }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className={`glass-card${isExpanded ? ' active' : ''}`}
+      style={{
+        position: 'relative', border: 'none', cursor: 'pointer', borderRadius: '10px', padding: '6px 6px 8px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', textAlign: 'center',
+      }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <div style={{
+        position: 'absolute', top: '-6px', left: '-6px', width: '18px', height: '18px', borderRadius: '50%',
+        background: 'linear-gradient(135deg, #9d7bff 0%, #6844c7 100%)', color: 'white', fontSize: '9px', fontWeight: 700,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', zIndex: 2,
+      }}>
+        {number}
+      </div>
+      <BookCover title={book.title} coverUrl={cover || null} loading={loading} width={56} height={83} rotate={false} />
+      <span style={{
+        fontSize: '9px', fontWeight: 600, color: '#e0e3e5', lineHeight: '12px',
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+      }}>
+        {book.title}
+      </span>
+    </motion.button>
+  )
+}
+
+function BookDetail({ book, cover, loading, zodiac, mbti }) {
+  return (
+    <motion.div
+      className="glass-card mystical-border"
+      style={{ borderRadius: '14px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.25 }}
+    >
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <BookCover title={book.title} coverUrl={cover || null} loading={loading} width={72} height={107} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: '#ffe16d', display: 'block', marginBottom: '4px' }}>
+            {zodiac?.name} &amp; {mbti}를 위한 선택
+          </span>
+          <h3 className="font-serif" style={{ fontSize: '16px', fontWeight: 700, color: '#e0e3e5', margin: '0 0 3px', lineHeight: 1.3 }}>{book.title}</h3>
+          <p style={{ color: '#cbc3d5', fontSize: '12px', margin: 0 }}>{book.author}</p>
+        </div>
+      </div>
+      <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '16px' }}>smart_toy</span>
+          <span style={{ fontSize: '12px', fontWeight: 500, color: '#cebdff', letterSpacing: '0.03em' }}>AI의 조언</span>
+        </div>
+        <p style={{ color: '#cbc3d5', fontSize: '13px', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>"{book.reason}"</p>
+      </div>
+    </motion.div>
+  )
+}
+
+function CategoryGrid({ title, entries, zodiac, mbti }) {
+  const [expanded, setExpanded] = useState(null)
+  const expandedEntry = expanded !== null ? entries[expanded] : null
+
+  return (
+    <section style={{ marginBottom: '32px' }}>
+      <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 12px' }}>
+        {title}
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+        {entries.map(({ book, cover, loading }, i) => (
+          <BookTile
+            key={book.title}
+            book={book} cover={cover} loading={loading} number={i + 1}
+            isExpanded={expanded === i}
+            onClick={() => setExpanded(expanded === i ? null : i)}
+            delay={Math.min(0.04 * i, 0.4)}
+          />
+        ))}
+      </div>
+      <AnimatePresence>
+        {expandedEntry && (
+          <BookDetail book={expandedEntry.book} cover={expandedEntry.cover} loading={expandedEntry.loading} zodiac={zodiac} mbti={mbti} />
+        )}
+      </AnimatePresence>
+    </section>
+  )
 }
 
 function ResultPage({ books, zodiac, mbti, onReset }) {
@@ -491,6 +688,14 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
   useEffect(() => {
     Promise.all(books.map(b => b.coverUrl || fetchCover(b.title, b.author))).then(setCovers)
   }, [books])
+
+  const koreanBooks = []
+  const foreignBooks = []
+  books.forEach((book, i) => {
+    const entry = { book, cover: covers[i], loading: covers[i] === undefined }
+    if (book.category === 'foreign') foreignBooks.push(entry)
+    else koreanBooks.push(entry)
+  })
 
   return (
     <motion.div
@@ -511,52 +716,15 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#cebdff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>운명적 추천</span>
           </div>
           <h2 className="font-serif" style={{ fontSize: '28px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 8px', lineHeight: 1.3 }}>
-            당신을 위해 선별된<br />세 권의 책
+            당신을 위해 선별된<br />스무 권의 책
           </h2>
           <p style={{ color: '#cbc3d5', fontSize: '15px', margin: 0 }}>
             {zodiac?.name} × {mbti} — 천체의 흐름과 당신의 성격이 만난 결과입니다.
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {books.map((book, i) => (
-            <motion.div
-              key={i}
-              className="glass-card mystical-border"
-              style={{ borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 * i }}
-            >
-              <div style={{ display: 'flex', gap: '14px' }}>
-                <BookCover title={book.title} coverUrl={covers[i] || null} loading={covers[i] === undefined} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#ffe16d', display: 'block', marginBottom: '4px' }}>
-                    {zodiac?.name} &amp; {mbti}를 위한 선택
-                  </span>
-                  <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 700, color: '#e0e3e5', margin: '0 0 3px', lineHeight: 1.3 }}>{book.title}</h3>
-                  <p style={{ color: '#cbc3d5', fontSize: '13px', margin: '0 0 10px' }}>{book.author}</p>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div className="mbti-badge" style={{ background: 'rgba(206,189,255,0.2)', padding: '2px 10px', color: '#cebdff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {mbti}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#ffe16d' }}>
-                      <span className="material-symbols-filled" style={{ fontSize: '14px' }}>star</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600 }}>{zodiac?.name}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '18px' }}>smart_toy</span>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#cebdff', letterSpacing: '0.05em' }}>AI의 조언</span>
-                </div>
-                <p style={{ color: '#cbc3d5', fontSize: '14px', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>"{book.reason}"</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        <CategoryGrid title="한국인 작가" entries={koreanBooks} zodiac={zodiac} mbti={mbti} />
+        <CategoryGrid title="해외 작가" entries={foreignBooks} zodiac={zodiac} mbti={mbti} />
 
         <motion.div
           style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' }}
