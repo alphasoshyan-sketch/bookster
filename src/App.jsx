@@ -3,19 +3,85 @@ import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 
 const ZODIAC_SIGNS = [
-  { icon: 'bakery_dining', name: '양자리', en: 'Aries' },
-  { icon: 'agriculture', name: '황소자리', en: 'Taurus' },
-  { icon: 'diversity_3', name: '쌍둥이자리', en: 'Gemini' },
-  { icon: 'waves', name: '게자리', en: 'Cancer' },
-  { icon: 'pets', name: '사자자리', en: 'Leo' },
-  { icon: 'spa', name: '처녀자리', en: 'Virgo' },
-  { icon: 'balance', name: '천칭자리', en: 'Libra' },
-  { icon: 'bug_report', name: '전갈자리', en: 'Scorpio' },
-  { icon: 'architecture', name: '궁수자리', en: 'Sagittarius' },
-  { icon: 'foundation', name: '염소자리', en: 'Capricorn' },
-  { icon: 'opacity', name: '물병자리', en: 'Aquarius' },
-  { icon: 'set_meal', name: '물고기자리', en: 'Pisces' },
+  {
+    name: '양자리', en: 'Aries',
+    points: [[4, 15], [8, 11], [13, 9], [19, 6], [11, 15]],
+    edges: [[0, 1], [1, 2], [2, 3], [1, 4]],
+  },
+  {
+    name: '황소자리', en: 'Taurus',
+    points: [[6, 5], [12, 14], [18, 5], [12, 3]],
+    edges: [[0, 1], [1, 2]],
+  },
+  {
+    name: '쌍둥이자리', en: 'Gemini',
+    points: [[7, 4], [7, 20], [17, 4], [17, 20], [7, 9], [17, 9], [7, 15], [17, 15]],
+    edges: [[0, 1], [2, 3], [4, 5], [6, 7]],
+  },
+  {
+    name: '게자리', en: 'Cancer',
+    points: [[12, 4], [12, 12], [6, 20], [18, 20]],
+    edges: [[0, 1], [1, 2], [1, 3]],
+  },
+  {
+    name: '사자자리', en: 'Leo',
+    points: [[6, 6], [9, 4], [12, 6], [12, 9], [9, 10], [7, 8], [17, 11], [21, 9], [18, 15]],
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [3, 6], [6, 7], [7, 8], [8, 6]],
+  },
+  {
+    name: '처녀자리', en: 'Virgo',
+    points: [[4, 5], [8, 9], [6, 14], [11, 12], [14, 18], [18, 10], [21, 6]],
+    edges: [[0, 1], [1, 2], [1, 3], [3, 4], [3, 5], [5, 6]],
+  },
+  {
+    name: '천칭자리', en: 'Libra',
+    points: [[12, 4], [6, 10], [18, 10], [6, 16], [18, 16], [12, 20]],
+    edges: [[0, 1], [0, 2], [1, 3], [2, 4], [0, 5]],
+  },
+  {
+    name: '전갈자리', en: 'Scorpio',
+    points: [[4, 4], [6, 8], [9, 11], [13, 13], [16, 11], [19, 13], [20, 17], [17, 19]],
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]],
+  },
+  {
+    name: '궁수자리', en: 'Sagittarius',
+    points: [[4, 20], [20, 4], [13, 4], [20, 11]],
+    edges: [[0, 1], [1, 2], [1, 3]],
+  },
+  {
+    name: '염소자리', en: 'Capricorn',
+    points: [[4, 6], [9, 15], [15, 7], [20, 17]],
+    edges: [[0, 1], [1, 2], [2, 3]],
+  },
+  {
+    name: '물병자리', en: 'Aquarius',
+    points: [[3, 8], [7, 11], [11, 8], [15, 11], [19, 8], [21, 12], [4, 16], [8, 19], [12, 16], [16, 19], [20, 16]],
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [6, 7], [7, 8], [8, 9], [9, 10]],
+  },
+  {
+    name: '물고기자리', en: 'Pisces',
+    points: [[4, 4], [8, 9], [4, 14], [20, 10], [16, 15], [20, 20]],
+    edges: [[0, 1], [1, 2], [3, 4], [4, 5], [1, 4]],
+  },
 ]
+
+function ZodiacConstellation({ points, edges, size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ overflow: 'visible' }}>
+      {edges.map(([a, b], i) => (
+        <line
+          key={i}
+          x1={points[a][0]} y1={points[a][1]}
+          x2={points[b][0]} y2={points[b][1]}
+          stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.8"
+        />
+      ))}
+      {points.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={1.3} fill="currentColor" />
+      ))}
+    </svg>
+  )
+}
 
 const MBTI_TYPES = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
@@ -620,7 +686,8 @@ export default function App() {
                 className={`glass-card${selectedZodiac?.en === zodiac.en ? ' active' : ''}`}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  aspectRatio: '1', borderRadius: '12px', padding: '8px', cursor: 'pointer', border: 'none',
+                  width: '66%', margin: '0 auto', aspectRatio: '1', borderRadius: '10px', padding: '6px',
+                  cursor: 'pointer', border: 'none',
                 }}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -628,8 +695,10 @@ export default function App() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <span className="material-symbols-outlined" style={{ color: '#cebdff', fontSize: '28px', marginBottom: '4px' }}>{zodiac.icon}</span>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#e0e3e5', lineHeight: '16px' }}>{zodiac.name}</span>
+                <span style={{ color: '#cebdff', marginBottom: '3px' }}>
+                  <ZodiacConstellation points={zodiac.points} edges={zodiac.edges} size={19} />
+                </span>
+                <span style={{ fontSize: '9px', fontWeight: 600, color: '#e0e3e5', lineHeight: '12px' }}>{zodiac.name}</span>
               </motion.button>
             ))}
           </div>
