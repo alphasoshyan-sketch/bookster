@@ -203,44 +203,7 @@ function AppHeader() {
           별들의 도서관
         </h1>
       </div>
-      <span className="material-symbols-outlined" style={{ color: '#cbc3d5', fontSize: '24px', cursor: 'pointer' }}>search</span>
     </header>
-  )
-}
-
-function BottomNav() {
-  return (
-    <nav style={{
-      background: 'rgba(25, 28, 30, 0.6)',
-      backdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(255,255,255,0.1)',
-      boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
-      position: 'fixed',
-      bottom: 0,
-      width: '100%',
-      zIndex: 50,
-      borderRadius: '16px 16px 0 0',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      height: '72px',
-      paddingBottom: '8px',
-    }}>
-      {[
-        { icon: 'auto_stories', label: '운명', filled: true, active: true },
-        { icon: 'explore', label: '탐색', active: false },
-        { icon: 'bookmarks', label: '서재', active: false },
-        { icon: 'settings', label: '설정', active: false },
-      ].map(({ icon, label, filled, active }) => (
-        <a key={label} href="#" style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-          color: active ? '#cebdff' : '#948e9f', textDecoration: 'none', transition: 'color 0.2s',
-        }}>
-          <span className={filled ? 'material-symbols-filled' : 'material-symbols-outlined'} style={{ fontSize: '24px' }}>{icon}</span>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>{label}</span>
-        </a>
-      ))}
-    </nav>
   )
 }
 
@@ -274,7 +237,6 @@ function OnboardingPage({ onStart }) {
             별들의 도서관
           </h1>
         </div>
-        <span className="material-symbols-outlined" style={{ color: '#cbc3d5', fontSize: '24px', cursor: 'pointer' }}>search</span>
       </header>
 
       {/* 메인 */}
@@ -298,7 +260,7 @@ function OnboardingPage({ onStart }) {
               당신의 별이 들려주는<br />책의 이야기
             </h2>
             <p style={{ fontSize: '18px', color: '#cbc3d5', lineHeight: 1.6, margin: '0 auto', maxWidth: '280px', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
-              별자리와 성향을 통해<br />운명적인 책 스무권을 만나보세요.
+              별자리와 MBTI성향을 통해<br />운명적인 책 스무권을 만나보세요.
             </p>
           </motion.div>
 
@@ -731,8 +693,6 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
           </motion.button>
         </motion.div>
       </main>
-
-      <BottomNav />
     </motion.div>
   )
 }
@@ -886,18 +846,10 @@ export default function App() {
           {loading ? '분석 중...' : '추천 받기'}
         </motion.button>
 
-        <AnimatePresence>
-          {!canRecommend && !loading && (
-            <motion.p
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ textAlign: 'center', color: 'rgba(203,195,213,0.5)', fontSize: '14px', marginTop: '12px' }}
-            >
-              {!selectedZodiac && !selectedMbti ? '별자리와 MBTI를 선택해주세요'
-                : !selectedZodiac ? '별자리를 선택해주세요'
-                : 'MBTI를 선택해주세요'}
-            </motion.p>
-          )}
-        </AnimatePresence>
+        <p style={{ textAlign: 'center', color: 'rgba(203,195,213,0.5)', fontSize: '13px', marginTop: '8px' }}>
+          결과가 나오기까지 30초가량 소요됩니다.
+        </p>
+
 
         <AnimatePresence>
           {loading && (
@@ -929,8 +881,6 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
-
-      <BottomNav />
     </motion.div>
   )
 }
