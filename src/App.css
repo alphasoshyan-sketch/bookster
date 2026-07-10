@@ -1,1 +1,68 @@
 /* App-specific overrides — global theme lives in index.css */
+
+.app-main,
+.result-main {
+  max-width: 512px;
+}
+
+.onboarding-section {
+  max-width: 448px;
+}
+
+.zodiac-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.mbti-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .app-main,
+  .result-main {
+    max-width: 760px;
+  }
+
+  .onboarding-section {
+    max-width: 560px;
+  }
+
+  .zodiac-grid,
+  .mbti-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .book-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-main,
+  .result-main {
+    max-width: 1040px;
+  }
+
+  .onboarding-section {
+    max-width: 640px;
+  }
+
+  .zodiac-grid,
+  .mbti-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .book-grid {
+    grid-template-columns: repeat(10, 1fr);
+  }
+}

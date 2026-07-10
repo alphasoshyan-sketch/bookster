@@ -285,28 +285,29 @@ function OnboardingPage({ onStart }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        <div style={{
-          width: '100%',
-          padding: '10px 16px',
-          marginBottom: '16px',
-          textAlign: 'center',
-          background: 'rgba(255, 191, 73, 0.16)',
-          color: '#ffd58a',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          fontSize: '14px',
-          fontWeight: 600,
-          backdropFilter: 'blur(8px)',
-        }}>
-          이 웹페이지는 현재 개발중입니다.
-        </div>
-        <section style={{ width: '100%', maxWidth: '448px', padding: '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <section className="onboarding-section" style={{ width: '100%', padding: '0 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+
+          {/* 문구 */}
+          <motion.div
+            style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '16px' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            <h2 className="font-serif" style={{ fontSize: '36px', fontWeight: 700, color: 'white', lineHeight: 1.3, margin: 0, letterSpacing: '-0.02em', textShadow: '0 4px 16px rgba(0,0,0,0.7)' }}>
+              당신의 별이 들려주는<br />책의 이야기
+            </h2>
+            <p style={{ fontSize: '18px', color: '#cbc3d5', lineHeight: 1.6, margin: '0 auto', maxWidth: '280px', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
+              별자리와 성향을 통해<br />운명적인 책 스무권을 만나보세요.
+            </p>
+          </motion.div>
 
           {/* 책 히어로 */}
           <motion.div
-            style={{ position: 'relative', width: '100%', aspectRatio: '1', marginBottom: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'relative', zIndex: 1, width: '100%', aspectRatio: '1', marginTop: '-64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
           >
             <div className="orbit-ring-outer" style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.05)' }} />
             <div className="orbit-ring-inner" style={{ position: 'absolute', inset: '16px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -330,24 +331,9 @@ function OnboardingPage({ onStart }) {
             </div>
           </motion.div>
 
-          {/* 문구 */}
-          <motion.div
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-          >
-            <h2 className="font-serif" style={{ fontSize: '36px', fontWeight: 700, color: 'white', lineHeight: 1.3, margin: 0, letterSpacing: '-0.02em' }}>
-              당신의 별이 들려주는<br />책의 이야기
-            </h2>
-            <p style={{ fontSize: '18px', color: '#cbc3d5', lineHeight: 1.6, margin: '0 auto', maxWidth: '280px' }}>
-              별자리와 성향을 통해<br />운명적인 책을 만나보세요.
-            </p>
-          </motion.div>
-
           {/* CTA */}
           <motion.div
-            style={{ marginTop: '32px', width: '100%' }}
+            style={{ position: 'relative', zIndex: 2, marginTop: '-56px', width: '100%' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
@@ -375,26 +361,7 @@ function OnboardingPage({ onStart }) {
             </p>
           </motion.div>
         </section>
-
-        {/* 뱃지 */}
-        <motion.section
-          style={{ position: 'relative', zIndex: 10, width: '100%', marginTop: '48px', padding: '0 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '448px' }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.6 }}
-        >
-          <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-filled" style={{ color: '#ffe16d', fontSize: '24px' }}>bedtime</span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e0e3e5' }}>별자리 분석</span>
-          </div>
-          <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-filled" style={{ color: '#cebdff', fontSize: '24px' }}>psychology</span>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#e0e3e5' }}>성향 기반 추천</span>
-          </div>
-        </motion.section>
       </main>
-
-      <BottomNav />
     </motion.div>
   )
 }
@@ -662,7 +629,7 @@ function CategoryGrid({ title, entries, zodiac, mbti }) {
       <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 12px' }}>
         {title}
       </h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+      <div className="book-grid">
         {entries.map(({ book, cover, loading }, i) => (
           <BookTile
             key={book.title}
@@ -709,7 +676,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
 
       <AppHeader />
 
-      <main style={{ position: 'relative', zIndex: 10, padding: '96px 24px 120px', maxWidth: '512px', margin: '0 auto' }}>
+      <main className="result-main" style={{ position: 'relative', zIndex: 10, padding: '96px 24px 120px', margin: '0 auto' }}>
         <div style={{ marginBottom: '32px', textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', background: 'rgba(206,189,255,0.1)', borderRadius: '9999px', border: '1px solid rgba(206,189,255,0.2)', marginBottom: '8px' }}>
             <span className="material-symbols-filled" style={{ color: '#cebdff', fontSize: '16px' }}>temp_preferences_custom</span>
@@ -840,13 +807,13 @@ export default function App() {
       <StarField />
       <AppHeader />
 
-      <main style={{ padding: '24px 24px 120px', maxWidth: '512px', margin: '64px auto 0' }}>
+      <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
 
         <section style={{ marginTop: '32px' }}>
           <h2 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#e0e3e5', marginBottom: '16px' }}>
             당신의 별자리를 선택하세요
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+          <div className="zodiac-grid">
             {ZODIAC_SIGNS.map((zodiac, i) => (
               <motion.button
                 key={zodiac.en}
@@ -876,7 +843,7 @@ export default function App() {
           <h2 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#e0e3e5', marginBottom: '16px' }}>
             당신의 MBTI는 무엇인가요?
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+          <div className="mbti-grid">
             {MBTI_TYPES.map((type, i) => {
               const isActive = selectedMbti === type
               return (
@@ -888,8 +855,8 @@ export default function App() {
                     padding: '12px 4px', borderRadius: '12px',
                     fontSize: '14px', fontWeight: 700,
                     fontFamily: 'Noto Serif KR, serif', cursor: 'pointer',
-                    border: isActive ? '1px solid #cebdff' : undefined,
-                    color: isActive ? '#390094' : '#e0e3e5',
+                    border: isActive ? '1px solid #baff3d' : undefined,
+                    color: '#e0e3e5',
                     transition: 'all 0.2s ease', letterSpacing: '0.5px',
                   }}
                   initial={{ opacity: 0, scale: 0.85 }}

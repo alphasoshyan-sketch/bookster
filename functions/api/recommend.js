@@ -146,6 +146,34 @@ function buildFallbackBooks(zodiac, mbti) {
   ]
 }
 
+// LLM이 카테고리당 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
+// 부족한 만큼 폴백 목록에서 채우고 넘치는 만큼 잘라내 항상 korean 10 + foreign 10을 보장한다.
+function normalizeBookCounts(books, zodiac, mbti) {
+  const fallback = buildFallbackBooks(zodiac, mbti)
+
+  function fillCategory(category) {
+    const seen = new Set()
+    const picked = []
+    for (const book of books) {
+      if (book?.category !== category || !book?.title || seen.has(book.title)) continue
+      seen.add(book.title)
+      picked.push(book)
+      if (picked.length === 10) break
+    }
+    if (picked.length < 10) {
+      for (const book of fallback) {
+        if (book.category !== category || seen.has(book.title)) continue
+        seen.add(book.title)
+        picked.push(book)
+        if (picked.length === 10) break
+      }
+    }
+    return picked
+  }
+
+  return [...fillCategory('korean'), ...fillCategory('foreign')]
+}
+
 export async function onRequestPost({ request, env }) {
   const { zodiac, mbti } = await request.json()
 
@@ -208,10 +236,14 @@ export async function onRequestPost({ request, env }) {
   }
 
   const data = await response.json()
-  const content = data.choices[0].message.content.trim()
+  let content = data.choices[0].message.content.trim()
+  // 모델이 지시를 무시하고 ```json ... ``` 코드펜스로 감싸는 경우가 있어 배열 부분만 추출한다.
+  const arrayMatch = content.match(/\[[\s\S]*\]/)
+  if (arrayMatch) content = arrayMatch[0]
 
   try {
-    const books = await attachLatestCovers(JSON.parse(content), env)
+    const parsed = JSON.parse(content)
+    const books = await attachLatestCovers(normalizeBookCounts(parsed, zodiac, mbti), env)
     return new Response(JSON.stringify(books), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })

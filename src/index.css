@@ -39,10 +39,8 @@
   }
 
   .mbti-active {
-    background: #cebdff;
-    color: #390094;
-    box-shadow: 0 0 12px rgba(206, 189, 255, 0.6);
-    border-color: #cebdff;
+    box-shadow: 0 0 8px rgba(186, 255, 61, 0.9), 0 0 20px rgba(186, 255, 61, 0.55), 0 0 34px rgba(186, 255, 61, 0.3);
+    border-color: #baff3d;
   }
 
   .primary-gradient-btn {
