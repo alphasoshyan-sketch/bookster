@@ -707,6 +707,18 @@ export default function App() {
   const [error, setError] = useState(null)
 
   const canRecommend = selectedZodiac !== null && selectedMbti !== null
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!loading) {
+      setElapsed(0)
+      return
+    }
+    const id = setInterval(() => {
+      setElapsed(prev => (prev < 30 ? prev + 1 : prev))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [loading])
 
   function handleMbtiSelect(type) {
     setSelectedMbti(prev => prev === type ? null : type)
@@ -867,6 +879,10 @@ export default function App() {
                 auto_awesome
               </motion.span>
               <p style={{ color: '#cbc3d5', fontSize: '14px' }}>별자리와 MBTI를 분석 중...</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#cebdff', fontSize: '13px', fontVariantNumeric: 'tabular-nums' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
+                <span>{elapsed} / 30초</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
