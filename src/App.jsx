@@ -582,30 +582,6 @@ function BookDetail({ book, cover, loading, zodiac, mbti }) {
   )
 }
 
-function AdUnit({ slot, style }) {
-  const insRef = useRef(null)
-
-  useEffect(() => {
-    try {
-      if (insRef.current && !insRef.current.getAttribute('data-adsbygoogle-status')) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({})
-      }
-    } catch {}
-  }, [])
-
-  return (
-    <ins
-      ref={insRef}
-      className="adsbygoogle"
-      style={{ display: 'block', ...style }}
-      data-ad-client="ca-pub-5420003190601737"
-      data-ad-slot={slot}
-      data-ad-format="auto"
-      data-full-width-responsive="true"
-    />
-  )
-}
-
 function CategoryGrid({ title, entries, zodiac, mbti }) {
   const [expanded, setExpanded] = useState(null)
   const expandedEntry = expanded !== null ? entries[expanded] : null
@@ -679,10 +655,6 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
         <CategoryGrid title="한국인 작가" entries={koreanBooks} zodiac={zodiac} mbti={mbti} />
         <CategoryGrid title="해외 작가" entries={foreignBooks} zodiac={zodiac} mbti={mbti} />
 
-        <div style={{ margin: '0 0 32px' }}>
-          <AdUnit slot="YOUR_AD_SLOT_ID" />
-        </div>
-
         <motion.div
           style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' }}
           initial={{ opacity: 0, y: 20 }}
@@ -721,9 +693,6 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
           </motion.button>
         </motion.div>
 
-        <div style={{ marginTop: '8px' }}>
-          <AdUnit slot="4200270892" />
-        </div>
       </main>
     </motion.div>
   )
