@@ -260,7 +260,7 @@ function OnboardingPage({ onStart }) {
               당신의 별이 들려주는<br />책의 이야기
             </h2>
             <p style={{ fontSize: '18px', color: '#cbc3d5', lineHeight: 1.6, margin: '0 auto', maxWidth: '280px', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
-              별자리와 MBTI성향을 통해<br />운명적인 책 스무권을 만나보세요.
+              별자리와 MBTI성향을 통해<br />운명적인 책 열 권을 만나보세요.
             </p>
           </motion.div>
 
@@ -399,122 +399,52 @@ function buildFallbackBooks(zodiac, mbti) {
     {
       title: '아몬드',
       author: '손원평',
-      category: 'fiction',
       reason: `${zodiac}의 감수성과 ${mbti}의 깊은 내면 성향을 잘 살려주는 소설입니다. 인간의 마음을 정교하게 그려내며 여운을 남깁니다.`,
     },
     {
       title: '채식주의자',
       author: '한강',
-      category: 'fiction',
       reason: `${zodiac}의 예민한 감각과 ${mbti}의 내면 탐구 성향이 만나 깊이 몰입할 수 있는 소설입니다. 강렬한 이미지와 여운이 오래 남습니다.`,
-    },
-    {
-      title: '82년생 김지영',
-      author: '조남주',
-      category: 'fiction',
-      reason: `${zodiac}의 공감 능력과 ${mbti}의 현실 인식 성향이 맞닿아 있는 소설입니다. 한 사람의 삶을 통해 우리 사회를 되돌아보게 합니다.`,
-    },
-    {
-      title: '완전한 행복',
-      author: '정유정',
-      category: 'fiction',
-      reason: `${zodiac}의 몰입력과 ${mbti}의 인간 심리에 대한 호기심을 자극하는 스릴러입니다. 긴장감 있는 전개로 단숨에 읽히는 작품입니다.`,
     },
     {
       title: '불편한 편의점',
       author: '김호연',
-      category: 'fiction',
       reason: `${zodiac}의 따뜻한 시선과 ${mbti}의 사람에 대한 관심을 자극하는 소설입니다. 평범한 일상 속 온기를 잔잔하게 그려냅니다.`,
-    },
-    {
-      title: '지구 끝의 온실',
-      author: '김초엽',
-      category: 'fiction',
-      reason: `${zodiac}의 상상력과 ${mbti}의 논리적 세계관 구축 욕구를 동시에 만족시키는 SF 소설입니다. 희망을 이야기하는 방식이 인상적입니다.`,
     },
     {
       title: '데미안',
       author: '헤르만 헤세',
-      category: 'fiction',
       reason: `${zodiac}의 내면 성장 욕구와 ${mbti}의 자아 탐구 성향에 깊이 와닿는 성장 소설입니다. 자기 자신에게 이르는 길을 그려냅니다.`,
-    },
-    {
-      title: '1984',
-      author: '조지 오웰',
-      category: 'fiction',
-      reason: `${zodiac}의 비판적 시각과 ${mbti}의 체계적 사고를 자극하는 고전입니다. 시대를 초월한 통찰로 여전히 강렬한 메시지를 전합니다.`,
-    },
-    {
-      title: '노르웨이의 숲',
-      author: '무라카미 하루키',
-      category: 'fiction',
-      reason: `${zodiac}의 감성적인 면과 ${mbti}의 내밀한 정서를 건드리는 소설입니다. 상실과 사랑을 섬세한 문체로 그려냅니다.`,
     },
     {
       title: '어린 왕자',
       author: '앙투안 드 생텍쥐페리',
-      category: 'fiction',
       reason: `${zodiac}의 순수한 감성과 ${mbti}의 본질을 꿰뚫는 사고를 자극하는 우화입니다. 짧지만 깊은 여운을 남기는 고전입니다.`,
     },
     {
       title: '나는 나로 살기로 했다',
       author: '김수현',
-      category: 'nonfiction',
       reason: `${zodiac}의 자신만의 길을 찾고 싶은 마음과 ${mbti}의 자기 이해 욕구를 잘 반영한 자기계발서입니다. 삶의 방향을 정리하는 데 도움이 됩니다.`,
     },
     {
       title: '언어의 온도',
       author: '이기주',
-      category: 'nonfiction',
       reason: `${zodiac}의 섬세한 표현력과 ${mbti}의 말과 관계에 대한 고민을 어루만져 주는 에세이입니다. 짧은 글마다 따뜻한 여운이 남습니다.`,
-    },
-    {
-      title: '죽고 싶지만 떡볶이는 먹고 싶어',
-      author: '백세희',
-      category: 'nonfiction',
-      reason: `${zodiac}의 솔직한 감정 표현과 ${mbti}의 자기 이해 욕구에 맞닿아 있는 에세이입니다. 담담한 고백이 위로를 건넵니다.`,
-    },
-    {
-      title: '여행의 이유',
-      author: '김영하',
-      category: 'nonfiction',
-      reason: `${zodiac}의 자유로운 기질과 ${mbti}의 사색적인 면모를 함께 채워주는 에세이입니다. 떠남과 머묾에 대한 통찰을 전합니다.`,
     },
     {
       title: '코스모스',
       author: '칼 세이건',
-      category: 'nonfiction',
       reason: `${zodiac}의 호기심과 ${mbti}의 탐구심을 함께 끌어올려 주는 과학 교양서입니다. 복잡한 우주를 쉽게 풀어내며 생각의 폭을 넓혀줍니다.`,
     },
     {
       title: '미움받을 용기',
       author: '기시미 이치로',
-      category: 'nonfiction',
       reason: `${zodiac}의 관계 고민과 ${mbti}의 자기 성찰 욕구에 맞닿아 있는 책입니다. 아들러 심리학을 통해 삶의 방향을 다시 세우게 해줍니다.`,
     },
     {
       title: '사피엔스',
       author: '유발 하라리',
-      category: 'nonfiction',
       reason: `${zodiac}의 큰 그림을 보는 시야와 ${mbti}의 지적 호기심을 자극하는 인문 교양서입니다. 인류사를 새로운 시각으로 조망합니다.`,
-    },
-    {
-      title: '마인드셋',
-      author: '캐럴 드웩',
-      category: 'nonfiction',
-      reason: `${zodiac}의 성장 욕구와 ${mbti}의 자기계발 성향에 실질적인 도움을 주는 심리학 도서입니다. 사고방식의 전환을 이끌어냅니다.`,
-    },
-    {
-      title: '총, 균, 쇠',
-      author: '재레드 다이아몬드',
-      category: 'nonfiction',
-      reason: `${zodiac}의 넓은 시야와 ${mbti}의 인과관계를 파헤치는 성향을 만족시키는 인문 교양서입니다. 문명사를 새로운 관점으로 조망합니다.`,
-    },
-    {
-      title: '죽음의 수용소에서',
-      author: '빅터 프랭클',
-      category: 'nonfiction',
-      reason: `${zodiac}의 삶에 대한 깊은 사유와 ${mbti}의 의미 탐구 욕구에 맞닿아 있는 책입니다. 극한 상황 속 인간 존엄을 이야기합니다.`,
     },
   ]
 }
@@ -582,15 +512,12 @@ function BookDetail({ book, cover, loading, zodiac, mbti }) {
   )
 }
 
-function CategoryGrid({ title, entries, zodiac, mbti }) {
+function BookGrid({ entries, zodiac, mbti }) {
   const [expanded, setExpanded] = useState(null)
   const expandedEntry = expanded !== null ? entries[expanded] : null
 
   return (
     <section style={{ marginBottom: '32px' }}>
-      <h3 className="font-serif" style={{ fontSize: '18px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 12px' }}>
-        {title}
-      </h3>
       <div className="book-grid">
         {entries.map(({ book, cover, loading }, i) => (
           <BookTile
@@ -618,13 +545,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
     Promise.all(books.map(b => b.coverUrl || fetchCover(b.title, b.author))).then(setCovers)
   }, [books])
 
-  const fictionBooks = []
-  const nonfictionBooks = []
-  books.forEach((book, i) => {
-    const entry = { book, cover: covers[i], loading: covers[i] === undefined }
-    if (book.category === 'nonfiction') nonfictionBooks.push(entry)
-    else fictionBooks.push(entry)
-  })
+  const entries = books.map((book, i) => ({ book, cover: covers[i], loading: covers[i] === undefined }))
 
   return (
     <motion.div
@@ -645,15 +566,14 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#cebdff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>운명적 추천</span>
           </div>
           <h2 className="font-serif" style={{ fontSize: '28px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 8px', lineHeight: 1.3 }}>
-            당신을 위해 선별된<br />스무 권의 책
+            당신을 위해 선별된<br />열 권의 책
           </h2>
           <p style={{ color: '#cbc3d5', fontSize: '15px', margin: 0 }}>
             {zodiac?.name} × {mbti} — 천체의 흐름과 당신의 성격이 만난 결과입니다.
           </p>
         </div>
 
-        <CategoryGrid title="소설" entries={fictionBooks} zodiac={zodiac} mbti={mbti} />
-        <CategoryGrid title="비소설" entries={nonfictionBooks} zodiac={zodiac} mbti={mbti} />
+        <BookGrid entries={entries} zodiac={zodiac} mbti={mbti} />
 
         <motion.div
           style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' }}
