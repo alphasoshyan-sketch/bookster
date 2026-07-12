@@ -26,6 +26,15 @@ function parseKoreanDate(str) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+// 알라딘의 "국내도서/외국도서" 최상위 분류는 저자 국적(원서/번역서 여부)을
+// LLM의 추측보다 신뢰할 수 있는 근거이므로, 표지 검색과 함께 국적 판별에도 활용한다.
+function detectNationality(categoryName) {
+  if (!categoryName) return null
+  if (categoryName.startsWith('국내도서')) return 'korean'
+  if (categoryName.startsWith('외국도서')) return 'foreign'
+  return null
+}
+
 async function searchAladin(title, author, env) {
   if (!env.ALADIN_TTB_KEY) return []
   try {
@@ -40,6 +49,7 @@ async function searchAladin(title, author, env) {
         source: '알라딘',
         date: parseKoreanDate(it.pubDate),
         coverUrl: it.cover.replace(/cover(sum|\d+)/, 'cover500'),
+        nationality: detectNationality(it.categoryName),
       }))
       .filter(it => it.date)
   } catch {
@@ -104,5 +114,12 @@ export async function findLatestCover(title, author, env) {
 
   candidates.sort((a, b) => b.date - a.date)
   const best = candidates[0]
-  return { coverUrl: best.coverUrl, source: best.source, pubDate: best.date.toISOString().slice(0, 10) }
+  // 최신 표지 후보와 국적 판별 근거(알라딘 categoryName)가 다른 소스에서 올 수 있어 별도로 찾는다.
+  const withNationality = candidates.find(c => c.nationality)
+  return {
+    coverUrl: best.coverUrl,
+    source: best.source,
+    pubDate: best.date.toISOString().slice(0, 10),
+    nationality: withNationality ? withNationality.nationality : null,
+  }
 }

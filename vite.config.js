@@ -1,7 +1,20 @@
+import { readFileSync, existsSync } from 'node:fs'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { findLatestCover } from './functions/api/_bookCover.js'
+
+// Cloudflare Pages Functions용 로컬 시크릿 파일(.dev.vars, gitignore 처리됨)을
+// vite dev 서버의 process.env에도 반영해 함수 핸들러가 그대로 사용할 수 있게 한다.
+function loadDevVars() {
+  if (!existsSync('.dev.vars')) return
+  for (const line of readFileSync('.dev.vars', 'utf-8').split('\n')) {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/)
+    if (!match) continue
+    const [, key, value = ''] = match
+    if (!(key in process.env)) process.env[key] = value.trim()
+  }
+}
 
 async function attachLatestCovers(books, env) {
   await Promise.all(
@@ -147,6 +160,7 @@ function buildFallbackBooks(zodiac, mbti) {
 }
 
 export default defineConfig(({ mode }) => {
+  loadDevVars()
   const env = loadEnv(mode, process.cwd(), '')
   const basePath = env.VITE_BASE_PATH || (process.env.GITHUB_ACTIONS ? '/bookster/' : '/')
 

@@ -3,22 +3,27 @@ import { CORS_HEADERS, handleOptions } from './_cors.js'
 
 export const onRequestOptions = handleOptions
 
-async function attachLatestCovers(books, env) {
-  await Promise.all(
+// 표지가 실제로 검색되는 책만 통과시키고, 알라딘에서 국적(국내도서/외국도서)이
+// 확인되면 LLM이 잘못 붙인 category(한국 작가가 foreign으로 분류되는 등)를 바로잡는다.
+async function resolveBooks(books, env) {
+  const resolved = await Promise.all(
     books.map(async book => {
       try {
         const best = await findLatestCover(book.title, book.author, env)
-        if (best) {
-          book.coverUrl = best.coverUrl
-          book.coverSource = best.source
-          book.pubDate = best.pubDate
+        if (!best) return null
+        return {
+          ...book,
+          category: best.nationality || book.category,
+          coverUrl: best.coverUrl,
+          coverSource: best.source,
+          pubDate: best.pubDate,
         }
       } catch {
-        // 표지 검색 실패는 무시하고 프론트엔드 폴백(Google Books 등)에 맡긴다
+        return null
       }
     })
   )
-  return books
+  return resolved.filter(Boolean)
 }
 
 function buildFallbackBooks(zodiac, mbti) {
@@ -146,32 +151,48 @@ function buildFallbackBooks(zodiac, mbti) {
   ]
 }
 
-// LLM이 카테고리당 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
-// 부족한 만큼 폴백 목록에서 채우고 넘치는 만큼 잘라내 항상 korean 10 + foreign 10을 보장한다.
-function normalizeBookCounts(books, zodiac, mbti) {
+function dedupByTitle(books) {
+  const seen = new Set()
+  return books.filter(book => {
+    if (!book?.title || seen.has(book.title)) return false
+    seen.add(book.title)
+    return true
+  })
+}
+
+// LLM이 카테고리당 정확히 10권을 채우지 못하거나, 중복 제목을 내놓거나, 표지가 없는/
+// 국적이 잘못 분류된 책을 내놓는 경우가 있다. 표지가 실제로 검색되는 책만 채택하고
+// (알라딘 기준) 국적이 확인되면 category를 바로잡은 뒤, 그래도 부족한 만큼은
+// 폴백 목록에서 같은 방식(표지 검증 + 국적 확인)으로 채워 넣어 korean 10 + foreign 10을 보장한다.
+async function selectBooks(llmBooks, zodiac, mbti, env) {
   const fallback = buildFallbackBooks(zodiac, mbti)
 
-  function fillCategory(category) {
-    const seen = new Set()
-    const picked = []
-    for (const book of books) {
-      if (book?.category !== category || !book?.title || seen.has(book.title)) continue
-      seen.add(book.title)
-      picked.push(book)
-      if (picked.length === 10) break
-    }
-    if (picked.length < 10) {
-      for (const book of fallback) {
-        if (book.category !== category || seen.has(book.title)) continue
-        seen.add(book.title)
-        picked.push(book)
-        if (picked.length === 10) break
-      }
-    }
-    return picked
+  const korean = []
+  const foreign = []
+  const used = new Set()
+
+  function bucketFor(category) {
+    return category === 'foreign' ? foreign : korean
   }
 
-  return [...fillCategory('korean'), ...fillCategory('foreign')]
+  function collect(resolved) {
+    for (const book of resolved) {
+      if (used.has(book.title)) continue
+      const bucket = bucketFor(book.category)
+      if (bucket.length >= 10) continue
+      bucket.push(book)
+      used.add(book.title)
+    }
+  }
+
+  collect(await resolveBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env))
+
+  if (korean.length < 10 || foreign.length < 10) {
+    const remainingFallback = fallback.filter(b => !used.has(b.title))
+    collect(await resolveBooks(remainingFallback, env))
+  }
+
+  return [...korean, ...foreign]
 }
 
 export async function onRequestPost({ request, env }) {
@@ -185,7 +206,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (!env.OPENAI_API_KEY) {
-    const fallbackBooks = await attachLatestCovers(buildFallbackBooks(zodiac, mbti), env)
+    const fallbackBooks = await selectBooks([], zodiac, mbti, env)
     return new Response(JSON.stringify(fallbackBooks), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
@@ -196,6 +217,8 @@ export async function onRequestPost({ request, env }) {
 이 사람의 성향에 딱 맞는 실제로 존재하는 책을 총 스무 권 추천해주세요.
 - 저자가 한국인인 책 열 권 (category: "korean")
 - 저자가 한국인이 아닌 책 열 권 (category: "foreign")
+category는 반드시 저자의 실제 국적 기준으로만 정확하게 분류하세요. 번역서라도 저자가
+한국인이면 "korean"이며, 이름이 한글로 표기된다는 이유만으로 "foreign"으로 분류하지 마세요.
 같은 카테고리 안에서도 서로 다른 장르로 골라주세요.
 
 반드시 아래와 같은 JSON 배열 형식으로만 답하세요. 배열 순서는 korean 열 권, foreign 열 권 순으로 정렬하고, 총 20개의 객체를 포함해야 하며, 다른 텍스트는 절대 포함하지 마세요. 아래는 형식 예시입니다 (실제로는 각 category당 10개씩 채워주세요):
@@ -243,7 +266,7 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const parsed = JSON.parse(content)
-    const books = await attachLatestCovers(normalizeBookCounts(parsed, zodiac, mbti), env)
+    const books = await selectBooks(parsed, zodiac, mbti, env)
     return new Response(JSON.stringify(books), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
