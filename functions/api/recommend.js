@@ -3,21 +3,21 @@ import { CORS_HEADERS, handleOptions } from './_cors.js'
 
 export const onRequestOptions = handleOptions
 
-// 표지가 실제로 검색되는 책만 통과시킨다. category는 LLM이 매긴 값을 그대로 신뢰한다
-// (알라딘의 "국내도서/외국도서" 분류는 번역서도 국내도서로 잡혀 저자 국적과 무관하므로 근거로 쓸 수 없다).
+// 표지 검색(알라딘/예스24/교보)은 실패할 수 있으므로 찾으면 붙이고 못 찾아도 책 자체는
+// 그대로 통과시킨다 (프론트엔드가 coverUrl 없는 책은 Google Books로 다시 조회한다).
+// category는 LLM이 매긴 값을 그대로 신뢰한다 (알라딘의 "국내도서/외국도서" 분류는
+// 번역서도 국내도서로 잡혀 저자 국적과 무관하므로 근거로 쓸 수 없다).
 async function resolveBooks(books, env) {
-  const resolved = await Promise.all(
+  return Promise.all(
     books.map(async book => {
       try {
         const best = await findLatestCover(book.title, book.author, env)
-        if (!best) return null
-        return { ...book, coverUrl: best.coverUrl, coverSource: best.source, pubDate: best.pubDate }
+        return best ? { ...book, coverUrl: best.coverUrl, coverSource: best.source, pubDate: best.pubDate } : book
       } catch {
-        return null
+        return book
       }
     })
   )
-  return resolved.filter(Boolean)
 }
 
 function buildFallbackBooks(zodiac, mbti) {
@@ -154,9 +154,8 @@ function dedupByTitle(books) {
   })
 }
 
-// LLM이 카테고리당 정확히 10권을 채우지 못하거나, 중복 제목을 내놓거나, 표지가 없는
-// 책을 내놓는 경우가 있다. 표지가 실제로 검색되는 책만 채택하고, 그래도 부족한 만큼은
-// 폴백 목록에서 같은 방식(표지 검증)으로 채워 넣어 korean 10 + foreign 10을 보장한다.
+// LLM이 카테고리당 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
+// 부족한 만큼 폴백 목록에서 채워 넣어 항상 korean 10 + foreign 10을 보장한다.
 async function selectBooks(llmBooks, zodiac, mbti, env) {
   const fallback = buildFallbackBooks(zodiac, mbti)
 
