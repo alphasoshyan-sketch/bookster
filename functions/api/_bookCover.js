@@ -26,10 +26,9 @@ function parseKoreanDate(str) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-async function searchAladin(title, author, env) {
-  if (!env.ALADIN_TTB_KEY) return []
+async function searchAladinOnce(title, query, env) {
   try {
-    const q = encodeURIComponent(`${title} ${author}`)
+    const q = encodeURIComponent(query)
     const url = `https://www.aladin.co.kr/ttb/api/ItemSearch.aspx?ttbkey=${env.ALADIN_TTB_KEY}&Query=${q}&QueryType=Keyword&MaxResults=5&start=1&SearchTarget=Book&output=js&Version=20131101`
     const res = await fetch(url, { headers: UA_HEADERS })
     if (!res.ok) return []
@@ -47,9 +46,18 @@ async function searchAladin(title, author, env) {
   }
 }
 
-async function searchYes24(title, author) {
+// 저자명이 부정확하거나 서점 검색엔진이 "제목+저자" 조합을 저자 위주로 해석하면
+// 정작 찾는 책이 상위 결과 밖으로 밀려날 수 있어, 결과가 없으면 제목만으로 재검색한다.
+async function searchAladin(title, author, env) {
+  if (!env.ALADIN_TTB_KEY) return []
+  const combined = await searchAladinOnce(title, `${title} ${author}`, env)
+  if (combined.length) return combined
+  return searchAladinOnce(title, title, env)
+}
+
+async function searchYes24Once(title, query) {
   try {
-    const q = encodeURIComponent(`${title} ${author}`)
+    const q = encodeURIComponent(query)
     const url = `https://www.yes24.com/Product/Search?domain=BOOK&query=${q}`
     const res = await fetch(url, { headers: UA_HEADERS })
     if (!res.ok) return []
@@ -70,9 +78,15 @@ async function searchYes24(title, author) {
   }
 }
 
-async function searchKyobo(title, author) {
+async function searchYes24(title, author) {
+  const combined = await searchYes24Once(title, `${title} ${author}`)
+  if (combined.length) return combined
+  return searchYes24Once(title, title)
+}
+
+async function searchKyoboOnce(title, query) {
   try {
-    const q = encodeURIComponent(`${title} ${author}`)
+    const q = encodeURIComponent(query)
     const url = `https://search.kyobobook.co.kr/search?keyword=${q}&target=total`
     const res = await fetch(url, { headers: UA_HEADERS })
     if (!res.ok) return []
@@ -91,6 +105,12 @@ async function searchKyobo(title, author) {
   } catch {
     return []
   }
+}
+
+async function searchKyobo(title, author) {
+  const combined = await searchKyoboOnce(title, `${title} ${author}`)
+  if (combined.length) return combined
+  return searchKyoboOnce(title, title)
 }
 
 export async function findLatestCover(title, author, env) {
