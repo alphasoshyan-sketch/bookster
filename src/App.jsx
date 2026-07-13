@@ -540,6 +540,49 @@ function BookGrid({ entries, zodiac, mbti }) {
 
 function ResultPage({ books, zodiac, mbti, onReset }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
+  const [shareOpen, setShareOpen] = useState(false)
+
+  useEffect(() => {
+    if (!shareOpen) return
+    // AddToAny의 page.js는 페이지 로드 시점에 존재하는 .a2a_kit만 자동으로 버튼화하므로,
+    // 나중에 열리는 이 영역은 렌더된 뒤 수동으로 다시 스캔하도록 알려줘야 한다.
+    const id = requestAnimationFrame(() => window.a2a?.init_all())
+    return () => cancelAnimationFrame(id)
+  }, [shareOpen])
+
+  useEffect(() => {
+    // AddToAny는 공유 후 "공유해줘서 고마워요" 안내(#a2a_thanks)를 띄우는데 자체 닫기(X)
+    // 버튼이 없다. 문장 아래에 자식으로 추가해두면 #a2a_thanks 자신의 표시 여부를 따로
+    // 추적할 필요 없이 부모가 보일 때 같이 보인다(기존 텍스트에 붙은 40px 하단 여백
+    // 덕분에 문장과도 자연스럽게 떨어진다). #a2a_overlay를 클릭하면 AddToAny 자체
+    // 로직(De())이 모달을 닫아주므로 그 클릭을 대신 실행해준다.
+    function injectCloseButton() {
+      const thanksEl = document.getElementById('a2a_thanks')
+      if (!thanksEl || thanksEl.querySelector('.a2a-thanks-close')) return
+
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'a2a-thanks-close'
+      btn.setAttribute('aria-label', '닫기')
+      btn.textContent = '×'
+      Object.assign(btn.style, {
+        display: 'block', margin: '8px auto 0',
+        width: '36px', height: '36px',
+        background: 'none', border: '1px solid currentColor', borderRadius: '6px',
+        color: 'inherit', fontSize: '20px', lineHeight: '34px', padding: '0', cursor: 'pointer',
+      })
+      btn.addEventListener('click', e => {
+        e.stopPropagation()
+        document.getElementById('a2a_overlay')?.click()
+      })
+      thanksEl.appendChild(btn)
+    }
+
+    injectCloseButton()
+    const observer = new MutationObserver(injectCloseButton)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     Promise.all(books.map(b => b.coverUrl || fetchCover(b.title, b.author))).then(setCovers)
@@ -582,6 +625,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
           transition={{ duration: 0.4, delay: 0.6 }}
         >
           <motion.button
+            onClick={() => setShareOpen(v => !v)}
             style={{
               width: '100%', height: '56px',
               background: 'linear-gradient(to right, #9d7bff, #cebdff)',
@@ -595,6 +639,37 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
             <span className="material-symbols-outlined">share</span>
             <span>공유하기</span>
           </motion.button>
+
+          <AnimatePresence>
+            {shareOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div
+                  style={{
+                    display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px',
+                    padding: '16px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+                  }}
+                >
+                  <div className="a2a_kit a2a_kit_size_32 a2a_default_style">
+                    <a className="a2a_dd" href="https://www.addtoany.com/share"></a>
+                    <a className="a2a_button_facebook"></a>
+                    <a className="a2a_button_email"></a>
+                    <a className="a2a_button_sms"></a>
+                    <a className="a2a_button_kakao"></a>
+                    <a className="a2a_button_line"></a>
+                    <a className="a2a_button_x"></a>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <motion.button
             onClick={onReset}
             style={{
