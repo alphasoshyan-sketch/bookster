@@ -18,6 +18,14 @@ async function resolveBooks(books, env) {
   )
 }
 
+// LLM이 추천한 책은 알라딘/예스24/교보문고(국내 서점) 중 한 곳에서라도 실제로 검색되는
+// 경우에만 채택한다. 이 서점들은 한국어 번역본/한국 저자 도서 위주로 취급하므로, 어디서도
+// 검색되지 않는 책은 미번역 해외원서이거나 LLM이 지어낸 책일 가능성이 높아 걸러낸다.
+async function resolveVerifiedBooks(books, env) {
+  const resolved = await resolveBooks(books, env)
+  return resolved.filter(book => book.coverUrl)
+}
+
 function buildFallbackBooks(zodiac, mbti) {
   return [
     {
@@ -98,9 +106,11 @@ async function selectBooks(llmBooks, zodiac, mbti, env) {
     }
   }
 
-  collect(await resolveBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env))
+  collect(await resolveVerifiedBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env))
 
   if (picked.length < 10) {
+    // 폴백 목록은 이미 국내 출간이 검증된 책이므로, 이번 표지 검색이 실패해도
+    // (스크래핑 일시 오류 등) 그대로 신뢰하고 채택해 10권 보장을 지킨다.
     const remainingFallback = fallback.filter(b => !used.has(b.title))
     collect(await resolveBooks(remainingFallback, env))
   }
@@ -129,6 +139,11 @@ export async function onRequestPost({ request, env }) {
 사용자의 별자리는 "${zodiac}"이고 MBTI는 "${mbti}"입니다.
 이 사람의 성향에 딱 맞는 실제로 존재하는 책을 총 열 권 추천해주세요.
 서로 다른 장르로 다양하게 골라주세요.
+
+반드시 아래 조건을 지켜주세요:
+- 한국에서 정식으로 번역 출간된 외국 도서이거나, 한국인 저자가 쓴 책만 추천하세요.
+- 국내에 번역 출간되지 않은 해외 원서(원서 그대로만 존재하는 책)는 절대 추천하지 마세요.
+- 번역서의 제목은 원서 제목이 아니라 국내 출간본의 한국어 제목으로 적어주세요.
 
 반드시 아래와 같은 JSON 배열 형식으로만 답하세요. 총 10개의 객체를 포함해야 하며, 다른 텍스트는 절대 포함하지 마세요. 아래는 형식 예시입니다:
 [

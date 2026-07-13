@@ -34,7 +34,15 @@ async function searchAladinOnce(title, query, env) {
     if (!res.ok) return []
     const data = await res.json()
     return (data.item || [])
-      .filter(it => it.title && titleMatches(it.title, title) && it.cover)
+      .filter(
+        it =>
+          it.title &&
+          titleMatches(it.title, title) &&
+          it.cover &&
+          // "외국도서"는 번역되지 않은 원서(수입도서) 카테고리라서, 번역서/한국 저자 도서만
+          // 취급하는 "국내도서"로 실제 국내 출간이 확인된 경우만 인정한다.
+          !(it.categoryName || '').startsWith('외국도서')
+      )
       .map(it => ({
         source: '알라딘',
         date: parseKoreanDate(it.pubDate),
@@ -92,10 +100,13 @@ async function searchKyoboOnce(title, query) {
     if (!res.ok) return []
     const html = await res.text()
     const results = []
-    const re = /data-kbbfn-bid="(\d+)"[^>]*data-kbbfn-title="([^"]+)"[\s\S]*?class="date">([^<]+)</g
+    // data-kbbfn-type이 도서의 언어를 나타낸다("KOR"=한국어, "ENG"/"JAP" 등은 원서·해외판,
+    // "EBK"는 전자책이라 언어가 불분명함). 한국어로 확인되는 경우만 인정한다.
+    const re = /data-kbbfn-bid="(\d+)"[^>]*data-kbbfn-type="([^"]+)"[^>]*data-kbbfn-title="([^"]+)"[\s\S]*?class="date">([^<]+)</g
     let m
     while ((m = re.exec(html)) && results.length < 5) {
-      const [, isbn13, resultTitle, pubDateText] = m
+      const [, isbn13, langType, resultTitle, pubDateText] = m
+      if (langType !== 'KOR') continue
       if (!titleMatches(resultTitle, title)) continue
       const date = parseKoreanDate(pubDateText)
       if (!date) continue
