@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
+import heroImg from './assets/hero.png'
 
 const ZODIAC_SIGNS = [
   {
@@ -551,6 +552,29 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
   }, [shareOpen])
 
   useEffect(() => {
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      window.Kakao.init(import.meta.env.VITE_KAKAO_JS_KEY)
+    }
+  }, [])
+
+  function handleKakaoShare() {
+    if (!window.Kakao?.isInitialized()) return
+    const url = window.location.href
+    window.Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: '별들의 도서관 - 나의 운명의 책',
+        description: `${zodiac?.name} × ${mbti}가 추천하는 열 권의 책`,
+        imageUrl: new URL(heroImg, window.location.origin).href,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [
+        { title: '결과 보러가기', link: { mobileWebUrl: url, webUrl: url } },
+      ],
+    })
+  }
+
+  useEffect(() => {
     // AddToAny는 공유 후 "공유해줘서 고마워요" 안내(#a2a_thanks)를 띄우는데 자체 닫기(X)
     // 버튼이 없다. 문장 아래에 자식으로 추가해두면 #a2a_thanks 자신의 표시 여부를 따로
     // 추적할 필요 없이 부모가 보일 때 같이 보인다(기존 텍스트에 붙은 40px 하단 여백
@@ -656,12 +680,26 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
                     border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
                   }}
                 >
+                  <button
+                    type="button"
+                    onClick={handleKakaoShare}
+                    aria-label="카카오톡 공유"
+                    title="카카오톡 공유"
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '9999px',
+                      background: '#FEE500', border: 'none', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.76 1.83 5.19 4.6 6.58-.2.75-.73 2.73-.84 3.15-.13.52.19.51.4.37.16-.1 2.6-1.76 3.66-2.48.7.1 1.42.16 2.18.16 5.52 0 10-3.48 10-7.78S17.52 3 12 3z" fill="#181600" />
+                    </svg>
+                  </button>
                   <div className="a2a_kit a2a_kit_size_32 a2a_default_style">
                     <a className="a2a_dd" href="https://www.addtoany.com/share"></a>
                     <a className="a2a_button_facebook"></a>
                     <a className="a2a_button_email"></a>
                     <a className="a2a_button_sms"></a>
-                    <a className="a2a_button_kakao"></a>
                     <a className="a2a_button_line"></a>
                     <a className="a2a_button_x"></a>
                   </div>
