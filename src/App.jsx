@@ -541,15 +541,13 @@ function BookGrid({ entries, zodiac, mbti }) {
 
 function ResultPage({ books, zodiac, mbti, onReset }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
-  const [shareOpen, setShareOpen] = useState(false)
 
   useEffect(() => {
-    if (!shareOpen) return
     // AddToAny의 page.js는 페이지 로드 시점에 존재하는 .a2a_kit만 자동으로 버튼화하므로,
-    // 나중에 열리는 이 영역은 렌더된 뒤 수동으로 다시 스캔하도록 알려줘야 한다.
+    // 렌더된 뒤 수동으로 다시 스캔하도록 알려줘야 한다.
     const id = requestAnimationFrame(() => window.a2a?.init_all())
     return () => cancelAnimationFrame(id)
-  }, [shareOpen])
+  }, [])
 
   useEffect(() => {
     if (window.Kakao && !window.Kakao.isInitialized()) {
@@ -648,65 +646,37 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.6 }}
         >
-          <motion.button
-            onClick={() => setShareOpen(v => !v)}
+          <div
             style={{
-              width: '100%', height: '56px',
-              background: 'linear-gradient(to right, #9d7bff, #cebdff)',
-              color: '#390094', fontWeight: 700, fontSize: '16px',
-              borderRadius: '12px', border: '1px solid rgba(255,255,255,0.3)',
-              boxShadow: '0 0 15px rgba(157,123,255,0.4)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px',
+              padding: '16px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
             }}
-            whileTap={{ scale: 0.95 }}
           >
-            <span className="material-symbols-outlined">share</span>
-            <span>공유하기</span>
-          </motion.button>
-
-          <AnimatePresence>
-            {shareOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                style={{ overflow: 'hidden' }}
-              >
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px',
-                    padding: '16px', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={handleKakaoShare}
-                    aria-label="카카오톡 공유"
-                    title="카카오톡 공유"
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '9999px',
-                      background: '#FEE500', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.76 1.83 5.19 4.6 6.58-.2.75-.73 2.73-.84 3.15-.13.52.19.51.4.37.16-.1 2.6-1.76 3.66-2.48.7.1 1.42.16 2.18.16 5.52 0 10-3.48 10-7.78S17.52 3 12 3z" fill="#181600" />
-                    </svg>
-                  </button>
-                  <div className="a2a_kit a2a_kit_size_32 a2a_default_style">
-                    <a className="a2a_dd" href="https://www.addtoany.com/share"></a>
-                    <a className="a2a_button_facebook"></a>
-                    <a className="a2a_button_email"></a>
-                    <a className="a2a_button_sms"></a>
-                    <a className="a2a_button_line"></a>
-                    <a className="a2a_button_x"></a>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <button
+              type="button"
+              onClick={handleKakaoShare}
+              aria-label="카카오톡 공유"
+              title="카카오톡 공유"
+              style={{
+                width: '32px', height: '32px', borderRadius: '9999px',
+                background: '#FEE500', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3C6.48 3 2 6.48 2 10.8c0 2.76 1.83 5.19 4.6 6.58-.2.75-.73 2.73-.84 3.15-.13.52.19.51.4.37.16-.1 2.6-1.76 3.66-2.48.7.1 1.42.16 2.18.16 5.52 0 10-3.48 10-7.78S17.52 3 12 3z" fill="#181600" />
+              </svg>
+            </button>
+            <div className="a2a_kit a2a_kit_size_32 a2a_default_style">
+              <a className="a2a_dd" href="https://www.addtoany.com/share"></a>
+              <a className="a2a_button_facebook"></a>
+              <a className="a2a_button_email"></a>
+              <a className="a2a_button_sms"></a>
+              <a className="a2a_button_line"></a>
+              <a className="a2a_button_x"></a>
+            </div>
+          </div>
 
           <motion.button
             onClick={onReset}
