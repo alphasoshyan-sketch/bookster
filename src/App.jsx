@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 import heroImg from './assets/hero.png'
+import { supabase } from './lib/supabaseClient'
 
 const ZODIAC_SIGNS = [
   {
@@ -182,33 +183,230 @@ function StarField() {
   )
 }
 
-function AppHeader() {
+function useSupabaseSession() {
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  return session
+}
+
+function AuthModal({ initialMode = 'login', onClose }) {
+  const [mode, setMode] = useState(initialMode) // 'login' | 'signup'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+    setNotice(null)
+
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      if (mode === 'signup') {
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+        if (signUpError) throw signUpError
+        if (data.session) {
+          onClose()
+        } else {
+          setNotice('가입 확인 메일을 보냈어요. 메일함을 확인해주세요.')
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw signInError
+        onClose()
+      }
+    } catch (err) {
+      setError(err.message || '오류가 발생했습니다. 다시 시도해주세요.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
-    <header style={{
-      background: 'rgba(16, 20, 21, 0.8)',
-      backdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(255,255,255,0.1)',
-      position: 'fixed',
-      top: 0,
-      width: '100%',
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      height: '64px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span className="material-symbols-filled" style={{ color: '#cebdff', fontSize: '24px' }}>auto_awesome</span>
-        <h1 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#cebdff', textShadow: '0 0 8px rgba(206,189,255,0.8)', margin: 0 }}>
-          별들의 도서관
-        </h1>
-      </div>
-    </header>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+      }}
+    >
+      <motion.div
+        onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={{
+          width: '100%', maxWidth: '360px', background: '#181622',
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px',
+          padding: '24px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        }}
+      >
+        <h2 className="font-serif" style={{ fontSize: '20px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 16px' }}>
+          {mode === 'login' ? '로그인' : '회원가입'}
+        </h2>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <input
+            type="email"
+            required
+            placeholder="이메일"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{
+              width: '100%', height: '44px', padding: '0 12px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+              color: '#e0e3e5', fontSize: '14px',
+            }}
+          />
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder="비밀번호"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{
+              width: '100%', height: '44px', padding: '0 12px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+              color: '#e0e3e5', fontSize: '14px',
+            }}
+          />
+          <p style={{ margin: '-6px 0 0', fontSize: '11px', color: '#7a7486' }}>
+            비밀번호는 6자 이상 입력해주세요.
+          </p>
+
+          {mode === 'signup' && (
+            <input
+              type="password"
+              required
+              minLength={6}
+              placeholder="비밀번호 확인"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              style={{
+                width: '100%', height: '44px', padding: '0 12px', borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                color: '#e0e3e5', fontSize: '14px',
+              }}
+            />
+          )}
+
+          {error && <p style={{ color: '#ff8a8a', fontSize: '13px', margin: 0 }}>{error}</p>}
+          {notice && <p style={{ color: '#baff3d', fontSize: '13px', margin: 0 }}>{notice}</p>}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%', height: '48px', marginTop: '4px',
+              background: 'linear-gradient(to right, #9d7bff, #6844c7)',
+              color: 'white', fontWeight: 700, fontSize: '15px',
+              borderRadius: '9999px', border: 'none',
+              cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.7 : 1,
+            }}
+          >
+            {submitting ? '처리 중...' : mode === 'login' ? '로그인' : '가입하기'}
+          </button>
+        </form>
+
+        <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: '#948e9f' }}>
+          {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}{' '}
+          <span
+            onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(null); setNotice(null); setConfirmPassword('') }}
+            style={{ color: '#ffe16d', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {mode === 'login' ? '회원가입' : '로그인'}
+          </span>
+        </p>
+      </motion.div>
+    </div>
+  )
+}
+
+function AppHeader({ hideAuthButton = false }) {
+  const session = useSupabaseSession()
+  const [authOpen, setAuthOpen] = useState(false)
+
+  return (
+    <>
+      <header style={{
+        background: 'rgba(16, 20, 21, 0.8)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 24px',
+        height: '64px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-filled" style={{ color: '#cebdff', fontSize: '24px' }}>auto_awesome</span>
+          <h1 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#cebdff', textShadow: '0 0 8px rgba(206,189,255,0.8)', margin: 0 }}>
+            별들의 도서관
+          </h1>
+        </div>
+
+        {session ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '13px', color: '#cbc3d5', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {session.user.email}
+            </span>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              style={{
+                fontSize: '13px', fontWeight: 600, color: '#e0e3e5',
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '9999px', padding: '6px 14px', cursor: 'pointer',
+              }}
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : !hideAuthButton ? (
+          <button
+            onClick={() => setAuthOpen(true)}
+            style={{
+              fontSize: '13px', fontWeight: 600, color: '#390094',
+              background: 'linear-gradient(to right, #9d7bff, #cebdff)',
+              border: 'none', borderRadius: '9999px', padding: '8px 16px', cursor: 'pointer',
+            }}
+          >
+            로그인
+          </button>
+        ) : null}
+      </header>
+
+      <AnimatePresence>
+        {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+      </AnimatePresence>
+    </>
   )
 }
 
 function OnboardingPage({ onStart }) {
+  const session = useSupabaseSession()
+  const [authMode, setAuthMode] = useState(null) // null | 'login' | 'signup'
+
   return (
     <motion.div
       style={{ minHeight: '100vh', position: 'relative', background: 'radial-gradient(circle at 50% 50%, #1E293B 0%, #0F172A 100%)', overflow: 'hidden' }}
@@ -224,21 +422,7 @@ function OnboardingPage({ onStart }) {
         <StarCanvas />
       </div>
 
-      {/* 헤더 */}
-      <header style={{
-        position: 'fixed', top: 0, width: '100%', zIndex: 50,
-        background: 'rgba(16,20,21,0.8)', backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px', height: '64px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-filled" style={{ color: '#cebdff', fontSize: '24px' }}>auto_awesome</span>
-          <h1 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#cebdff', textShadow: '0 0 8px rgba(206,189,255,0.8)', margin: 0 }}>
-            별들의 도서관
-          </h1>
-        </div>
-      </header>
+      <AppHeader hideAuthButton />
 
       {/* 메인 */}
       <main style={{
@@ -319,12 +503,38 @@ function OnboardingPage({ onStart }) {
               시작하기
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
             </motion.button>
-            <p style={{ marginTop: '8px', fontSize: '14px', color: '#948e9f', letterSpacing: '0.05em' }}>
-              이미 계정이 있으신가요? <span style={{ color: '#ffe16d', cursor: 'pointer', textDecoration: 'underline' }}>로그인</span>
-            </p>
+
+            {!session && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button
+                  onClick={() => setAuthMode('login')}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '9999px',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                  }}
+                >
+                  로그인
+                </button>
+                <button
+                  onClick={() => setAuthMode('signup')}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '9999px',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                  }}
+                >
+                  가입하기
+                </button>
+              </div>
+            )}
           </motion.div>
         </section>
       </main>
+
+      <AnimatePresence>
+        {authMode && <AuthModal initialMode={authMode} onClose={() => setAuthMode(null)} />}
+      </AnimatePresence>
     </motion.div>
   )
 }
