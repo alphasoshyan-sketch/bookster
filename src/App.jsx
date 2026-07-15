@@ -221,7 +221,9 @@ function AuthModal({ initialMode = 'login', onClose }) {
       if (mode === 'signup') {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
         if (signUpError) throw signUpError
-        if (data.session) {
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setError('이미 가입된 이메일입니다. 로그인해주세요.')
+        } else if (data.session) {
           onClose()
         } else {
           setNotice('가입 확인 메일을 보냈어요. 메일함을 확인해주세요.')
