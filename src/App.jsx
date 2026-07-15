@@ -341,9 +341,92 @@ function AuthModal({ initialMode = 'login', onClose }) {
   )
 }
 
+function WithdrawModal({ onClose }) {
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleConfirm() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || '탈퇴 처리에 실패했습니다.')
+      await supabase.auth.signOut()
+      onClose()
+    } catch (err) {
+      setError(err.message || '오류가 발생했습니다. 다시 시도해주세요.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={submitting ? undefined : onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+      }}
+    >
+      <motion.div
+        onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={{
+          width: '100%', maxWidth: '340px', background: '#181622',
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px',
+          padding: '24px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', textAlign: 'center',
+        }}
+      >
+        <h2 className="font-serif" style={{ fontSize: '18px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 8px' }}>
+          정말 탈퇴하시겠어요?
+        </h2>
+        <p style={{ fontSize: '13px', color: '#948e9f', margin: '0 0 20px' }}>
+          탈퇴하면 계정 정보가 삭제되며 되돌릴 수 없습니다.
+        </p>
+
+        {error && (
+          <p style={{ color: '#ff8a8a', fontSize: '13px', margin: '0 0 12px' }}>{error}</p>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            style={{
+              flex: 1, padding: '10px', fontSize: '14px', fontWeight: 600, color: '#e0e3e5',
+              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '9999px', cursor: submitting ? 'default' : 'pointer',
+            }}
+          >
+            아니오
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={submitting}
+            style={{
+              flex: 1, padding: '10px', fontSize: '14px', fontWeight: 700, color: 'white',
+              background: 'linear-gradient(to right, #ff6b6b, #c73838)', border: 'none',
+              borderRadius: '9999px', cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.7 : 1,
+            }}
+          >
+            {submitting ? '처리 중...' : '네'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 function AppHeader({ hideAuthButton = false }) {
   const session = useSupabaseSession()
   const [authOpen, setAuthOpen] = useState(false)
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
 
   return (
     <>
@@ -373,16 +456,28 @@ function AppHeader({ hideAuthButton = false }) {
             <span style={{ fontSize: '13px', color: '#cbc3d5', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user.email}
             </span>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              style={{
-                fontSize: '13px', fontWeight: 600, color: '#e0e3e5',
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '9999px', padding: '6px 14px', cursor: 'pointer',
-              }}
-            >
-              로그아웃
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              <button
+                onClick={() => supabase.auth.signOut()}
+                style={{
+                  fontSize: '13px', fontWeight: 600, color: '#e0e3e5',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '9999px', padding: '6px 14px', cursor: 'pointer',
+                }}
+              >
+                로그아웃
+              </button>
+              <button
+                onClick={() => setWithdrawOpen(true)}
+                style={{
+                  fontSize: '11px', fontWeight: 500, color: '#7a7484',
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                탈퇴하기
+              </button>
+            </div>
           </div>
         ) : !hideAuthButton ? (
           <button
@@ -400,6 +495,10 @@ function AppHeader({ hideAuthButton = false }) {
 
       <AnimatePresence>
         {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}
       </AnimatePresence>
     </>
   )

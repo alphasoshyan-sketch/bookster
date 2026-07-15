@@ -2,7 +2,8 @@ import { readFileSync, existsSync } from 'node:fs'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { onRequestPost } from './functions/api/recommend.js'
+import { onRequestPost as recommendHandler } from './functions/api/recommend.js'
+import { onRequestPost as deleteAccountHandler } from './functions/api/delete-account.js'
 
 // Cloudflare Pages Functions용 로컬 시크릿 파일(.dev.vars, gitignore 처리됨)을
 // vite dev 서버의 process.env에도 반영해 함수 핸들러가 그대로 사용할 수 있게 한다.
@@ -54,7 +55,7 @@ export default defineConfig(({ mode }) => {
                   ALADIN_TTB_KEY: process.env.ALADIN_TTB_KEY,
                 }
 
-                const response = await onRequestPost({ request, env: devEnv })
+                const response = await recommendHandler({ request, env: devEnv })
                 res.statusCode = response.status
                 res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json')
                 res.end(await response.text())
@@ -64,6 +65,39 @@ export default defineConfig(({ mode }) => {
                 res.end(JSON.stringify({ error: error.message || '추천 요청 중 오류가 발생했습니다.' }))
               }
             })
+          })
+        },
+      },
+      {
+        // Cloudflare Pages Functions(functions/api/delete-account.js)를 그대로 호출해,
+        // 로컬 dev 서버에서도 회원 탈퇴 플로우를 배포 환경과 같은 코드 경로로 테스트할 수 있게 한다.
+        name: 'delete-account-api-dev-handler',
+        configureServer(server) {
+          server.middlewares.use('/api/delete-account', async (req, res, next) => {
+            if (req.method !== 'POST') {
+              next()
+              return
+            }
+
+            try {
+              const devEnv = {
+                SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+                SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+              }
+              const request = new Request('http://localhost/api/delete-account', {
+                method: 'POST',
+                headers: { Authorization: req.headers.authorization || '' },
+              })
+
+              const response = await deleteAccountHandler({ request, env: devEnv })
+              res.statusCode = response.status
+              res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json')
+              res.end(await response.text())
+            } catch (error) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: error.message || '탈퇴 처리 중 오류가 발생했습니다.' }))
+            }
           })
         },
       },
