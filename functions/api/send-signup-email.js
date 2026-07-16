@@ -32,7 +32,8 @@ export async function onRequestPost({ request, env }) {
   })
 
   if (!resendResponse.ok) {
-    return jsonResponse({ error: '메일 발송에 실패했습니다.' }, 500)
+    const detail = await resendResponse.text().catch(() => '')
+    return jsonResponse({ error: '메일 발송에 실패했습니다.', status: resendResponse.status, detail }, 500)
   }
 
   return jsonResponse({ success: true })
