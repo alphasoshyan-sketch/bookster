@@ -91,9 +91,13 @@ function dedupByTitle(books) {
 }
 
 // LLM이 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
-// 부족한 만큼 폴백 목록에서 채워 넣어 항상 10권을 보장한다.
-async function selectBooks(llmBooks, zodiac, mbti, env) {
+// 부족한 만큼 폴백 목록에서 채워 최대 10권까지 채운다.
+// excludeTitles(로그인 사용자의 이전 추천작)는 항상 걸러내며, 그 결과 10권을
+// 못 채우더라도(추천 이력이 많이 쌓인 경우) 중복 추천은 하지 않는다.
+async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set()) {
   const fallback = buildFallbackBooks(zodiac, mbti)
+  const verifiedLlmBooks = await resolveVerifiedBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env)
+  const resolvedFallback = await resolveBooks(fallback, env)
 
   const picked = []
   const used = new Set()
@@ -101,21 +105,68 @@ async function selectBooks(llmBooks, zodiac, mbti, env) {
   function collect(resolved) {
     for (const book of resolved) {
       if (used.has(book.title) || picked.length >= 10) continue
+      if (excludeTitles.has(book.title)) continue
       picked.push(book)
       used.add(book.title)
     }
   }
 
-  collect(await resolveVerifiedBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env))
-
-  if (picked.length < 10) {
-    // 폴백 목록은 이미 국내 출간이 검증된 책이므로, 이번 표지 검색이 실패해도
-    // (스크래핑 일시 오류 등) 그대로 신뢰하고 채택해 10권 보장을 지킨다.
-    const remainingFallback = fallback.filter(b => !used.has(b.title))
-    collect(await resolveBooks(remainingFallback, env))
-  }
+  collect(verifiedLlmBooks)
+  collect(resolvedFallback)
 
   return picked
+}
+
+// Authorization 헤더의 access token으로 로그인 사용자를 조회한다. 토큰이 없거나
+// 유효하지 않으면 null을 반환해 비로그인 사용자와 동일하게(추천 이력 없이) 동작시킨다.
+async function getUserId(request, env) {
+  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  if (!token || !supabaseUrl || !env.SUPABASE_SERVICE_ROLE_KEY) return null
+
+  try {
+    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: env.SUPABASE_SERVICE_ROLE_KEY },
+    })
+    if (!userResponse.ok) return null
+    const user = await userResponse.json()
+    return user.id || null
+  } catch {
+    return null
+  }
+}
+
+async function fetchPreviouslyRecommendedTitles(userId, env) {
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/recommended_books?user_id=eq.${userId}&select=title`,
+      { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } }
+    )
+    if (!res.ok) return new Set()
+    const rows = await res.json()
+    return new Set(rows.map(row => row.title))
+  } catch {
+    return new Set()
+  }
+}
+
+async function saveRecommendedBooks(userId, books, env) {
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
+      method: 'POST',
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(books.map(book => ({ user_id: userId, title: book.title, author: book.author }))),
+    })
+  } catch {
+    // 이력 저장 실패는 추천 결과 자체에 영향을 주지 않도록 무시한다.
+  }
 }
 
 export async function onRequestPost({ request, env }) {
@@ -128,17 +179,26 @@ export async function onRequestPost({ request, env }) {
     })
   }
 
+  const userId = await getUserId(request, env)
+  const excludeTitles = userId ? await fetchPreviouslyRecommendedTitles(userId, env) : new Set()
+
   if (!env.OPENAI_API_KEY) {
-    const fallbackBooks = await selectBooks([], zodiac, mbti, env)
+    const fallbackBooks = await selectBooks([], zodiac, mbti, env, excludeTitles)
+    if (userId) await saveRecommendedBooks(userId, fallbackBooks, env)
     return new Response(JSON.stringify(fallbackBooks), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 
+  const excludeNote = excludeTitles.size > 0
+    ? `\n다음 책들은 이 사용자에게 이전에 이미 추천했으니, 이번에는 겹치지 않는 다른 책으로 추천해주세요: ${[...excludeTitles].join(', ')}\n`
+    : ''
+
   const prompt = `당신은 도서 추천 전문가입니다.
 사용자의 별자리는 "${zodiac}"이고 MBTI는 "${mbti}"입니다.
 이 사람의 성향에 딱 맞는 실제로 존재하는 책을 총 열 권 추천해주세요.
 서로 다른 장르로 다양하게 골라주세요.
+${excludeNote}
 
 반드시 아래 조건을 지켜주세요:
 - 한국에서 정식으로 번역 출간된 외국 도서이거나, 한국인 저자가 쓴 책만 추천하세요.
@@ -183,7 +243,8 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const parsed = JSON.parse(content)
-    const books = await selectBooks(parsed, zodiac, mbti, env)
+    const books = await selectBooks(parsed, zodiac, mbti, env, excludeTitles)
+    if (userId) await saveRecommendedBooks(userId, books, env)
     return new Response(JSON.stringify(books), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
