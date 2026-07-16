@@ -182,6 +182,33 @@ export async function onRequestPost({ request, env }) {
   const userId = await getUserId(request, env)
   const excludeTitles = userId ? await fetchPreviouslyRecommendedTitles(userId, env) : new Set()
 
+  if (new URL(request.url).searchParams.has('debug')) {
+    let saveError = null
+    if (userId) {
+      try {
+        const saveRes = await fetch(`${env.SUPABASE_URL || env.VITE_SUPABASE_URL}/rest/v1/recommended_books`, {
+          method: 'POST',
+          headers: {
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify([{ user_id: userId, title: '__debug__', author: '__debug__' }]),
+        })
+        if (!saveRes.ok) saveError = { status: saveRes.status, body: await saveRes.text() }
+      } catch (e) {
+        saveError = { thrown: String(e) }
+      }
+    }
+    return new Response(JSON.stringify({
+      hasAuthHeader: !!request.headers.get('Authorization'),
+      userId,
+      excludeCount: excludeTitles.size,
+      saveError,
+    }), { headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } })
+  }
+
   if (!env.OPENAI_API_KEY) {
     const fallbackBooks = await selectBooks([], zodiac, mbti, env, excludeTitles)
     if (userId) await saveRecommendedBooks(userId, fallbackBooks, env)
