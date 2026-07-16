@@ -15,7 +15,10 @@ export async function onRequestPost({ request, env }) {
 
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   if (!supabaseUrl || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonResponse({ error: '서버 설정이 완료되지 않았습니다.' }, 500)
+    const missing = []
+    if (!supabaseUrl) missing.push('SUPABASE_URL/VITE_SUPABASE_URL')
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY')
+    return jsonResponse({ error: `서버 설정이 완료되지 않았습니다. (누락: ${missing.join(', ')})` }, 500)
   }
 
   // 요청에 담긴 access token으로 사용자를 조회해, 토큰 소유자 본인의 계정만 삭제되도록 한다.
