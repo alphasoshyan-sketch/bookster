@@ -91,13 +91,13 @@ function dedupByTitle(books) {
 }
 
 // LLM이 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
-// 부족한 만큼 폴백 목록에서 채워 최대 10권까지 채운다.
+// 부족한 만큼 폴백 목록에서 채워 최대 10권까지 채운다. 폴백 표지 조회는
+// Cloudflare Workers의 subrequest 한도를 넘지 않도록 실제로 부족한 만큼만 수행한다.
 // excludeTitles(로그인 사용자의 이전 추천작)는 항상 걸러내며, 그 결과 10권을
 // 못 채우더라도(추천 이력이 많이 쌓인 경우) 중복 추천은 하지 않는다.
 async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set()) {
   const fallback = buildFallbackBooks(zodiac, mbti)
   const verifiedLlmBooks = await resolveVerifiedBooks(dedupByTitle((llmBooks || []).filter(b => b?.title)), env)
-  const resolvedFallback = await resolveBooks(fallback, env)
 
   const picked = []
   const used = new Set()
@@ -112,7 +112,11 @@ async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set(
   }
 
   collect(verifiedLlmBooks)
-  collect(resolvedFallback)
+
+  if (picked.length < 10) {
+    const remainingFallback = fallback.filter(b => !used.has(b.title) && !excludeTitles.has(b.title))
+    collect(await resolveBooks(remainingFallback, env))
+  }
 
   return picked
 }
@@ -154,7 +158,7 @@ async function fetchPreviouslyRecommendedTitles(userId, env) {
 async function saveRecommendedBooks(userId, books, env) {
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
+    await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
       method: 'POST',
       headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -164,11 +168,8 @@ async function saveRecommendedBooks(userId, books, env) {
       },
       body: JSON.stringify(books.map(book => ({ user_id: userId, title: book.title, author: book.author }))),
     })
-    if (!res.ok) return { ok: false, status: res.status, body: await res.text() }
-    return { ok: true }
-  } catch (e) {
+  } catch {
     // 이력 저장 실패는 추천 결과 자체에 영향을 주지 않도록 무시한다.
-    return { ok: false, thrown: String(e) }
   }
 }
 
@@ -185,41 +186,11 @@ export async function onRequestPost({ request, env }) {
   const userId = await getUserId(request, env)
   const excludeTitles = userId ? await fetchPreviouslyRecommendedTitles(userId, env) : new Set()
 
-  if (new URL(request.url).searchParams.has('debug')) {
-    let saveError = null
-    if (userId) {
-      try {
-        const saveRes = await fetch(`${env.SUPABASE_URL || env.VITE_SUPABASE_URL}/rest/v1/recommended_books`, {
-          method: 'POST',
-          headers: {
-            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'return=minimal',
-          },
-          body: JSON.stringify([{ user_id: userId, title: '__debug__', author: '__debug__' }]),
-        })
-        if (!saveRes.ok) saveError = { status: saveRes.status, body: await saveRes.text() }
-      } catch (e) {
-        saveError = { thrown: String(e) }
-      }
-    }
-    return new Response(JSON.stringify({
-      hasAuthHeader: !!request.headers.get('Authorization'),
-      userId,
-      excludeCount: excludeTitles.size,
-      saveError,
-    }), { headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } })
-  }
-
   if (!env.OPENAI_API_KEY) {
     const fallbackBooks = await selectBooks([], zodiac, mbti, env, excludeTitles)
-    const saveResult = userId ? await saveRecommendedBooks(userId, fallbackBooks, env) : null
+    if (userId) await saveRecommendedBooks(userId, fallbackBooks, env)
     return new Response(JSON.stringify(fallbackBooks), {
-      headers: {
-        'Content-Type': 'application/json', ...CORS_HEADERS,
-        'X-Save-Debug': encodeURIComponent(JSON.stringify({ userId, saveResult })),
-      },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   }
 
@@ -277,12 +248,9 @@ ${excludeNote}
   try {
     const parsed = JSON.parse(content)
     const books = await selectBooks(parsed, zodiac, mbti, env, excludeTitles)
-    const saveResult = userId ? await saveRecommendedBooks(userId, books, env) : null
+    if (userId) await saveRecommendedBooks(userId, books, env)
     return new Response(JSON.stringify(books), {
-      headers: {
-        'Content-Type': 'application/json', ...CORS_HEADERS,
-        'X-Save-Debug': encodeURIComponent(JSON.stringify({ userId, saveResult })),
-      },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   } catch {
     return new Response(JSON.stringify({ error: '응답 파싱에 실패했습니다.' }), {
