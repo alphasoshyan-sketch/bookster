@@ -154,7 +154,7 @@ async function fetchPreviouslyRecommendedTitles(userId, env) {
 async function saveRecommendedBooks(userId, books, env) {
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   try {
-    await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
       method: 'POST',
       headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -164,8 +164,11 @@ async function saveRecommendedBooks(userId, books, env) {
       },
       body: JSON.stringify(books.map(book => ({ user_id: userId, title: book.title, author: book.author }))),
     })
-  } catch {
+    if (!res.ok) return { ok: false, status: res.status, body: await res.text() }
+    return { ok: true }
+  } catch (e) {
     // 이력 저장 실패는 추천 결과 자체에 영향을 주지 않도록 무시한다.
+    return { ok: false, thrown: String(e) }
   }
 }
 
@@ -211,9 +214,12 @@ export async function onRequestPost({ request, env }) {
 
   if (!env.OPENAI_API_KEY) {
     const fallbackBooks = await selectBooks([], zodiac, mbti, env, excludeTitles)
-    if (userId) await saveRecommendedBooks(userId, fallbackBooks, env)
+    const saveResult = userId ? await saveRecommendedBooks(userId, fallbackBooks, env) : null
     return new Response(JSON.stringify(fallbackBooks), {
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+      headers: {
+        'Content-Type': 'application/json', ...CORS_HEADERS,
+        'X-Save-Debug': encodeURIComponent(JSON.stringify({ userId, saveResult })),
+      },
     })
   }
 
@@ -271,9 +277,12 @@ ${excludeNote}
   try {
     const parsed = JSON.parse(content)
     const books = await selectBooks(parsed, zodiac, mbti, env, excludeTitles)
-    if (userId) await saveRecommendedBooks(userId, books, env)
+    const saveResult = userId ? await saveRecommendedBooks(userId, books, env) : null
     return new Response(JSON.stringify(books), {
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+      headers: {
+        'Content-Type': 'application/json', ...CORS_HEADERS,
+        'X-Save-Debug': encodeURIComponent(JSON.stringify({ userId, saveResult })),
+      },
     })
   } catch {
     return new Response(JSON.stringify({ error: '응답 파싱에 실패했습니다.' }), {
