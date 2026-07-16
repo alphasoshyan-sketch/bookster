@@ -203,13 +203,12 @@ function AuthModal({ initialMode = 'login', onClose }) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(null)
-  const [notice, setNotice] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [signupComplete, setSignupComplete] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    setNotice(null)
 
     if (mode === 'signup' && password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.')
@@ -223,10 +222,13 @@ function AuthModal({ initialMode = 'login', onClose }) {
         if (signUpError) throw signUpError
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           setError('이미 가입된 이메일입니다. 로그인해주세요.')
-        } else if (data.session) {
-          onClose()
         } else {
-          setNotice('가입 확인 메일을 보냈어요. 메일함을 확인해주세요.')
+          fetch('/api/send-signup-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          }).catch(() => {})
+          setSignupComplete(true)
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -238,6 +240,47 @@ function AuthModal({ initialMode = 'login', onClose }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (signupComplete) {
+    return (
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+        }}
+      >
+        <motion.div
+          onClick={e => e.stopPropagation()}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{
+            width: '100%', maxWidth: '340px', background: '#181622',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px',
+            padding: '24px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', textAlign: 'center',
+          }}
+        >
+          <h2 className="font-serif" style={{ fontSize: '18px', fontWeight: 600, color: '#e0e3e5', margin: '0 0 8px' }}>
+            가입이 완료되었습니다
+          </h2>
+          <p style={{ fontSize: '13px', color: '#948e9f', margin: '0 0 20px' }}>
+            {email}(으)로 가입 완료 메일을 보냈어요.
+          </p>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', padding: '12px', fontSize: '14px', fontWeight: 700, color: 'white',
+              background: 'linear-gradient(to right, #9d7bff, #6844c7)', border: 'none',
+              borderRadius: '9999px', cursor: 'pointer',
+            }}
+          >
+            확인
+          </button>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
@@ -310,7 +353,6 @@ function AuthModal({ initialMode = 'login', onClose }) {
           )}
 
           {error && <p style={{ color: '#ff8a8a', fontSize: '13px', margin: 0 }}>{error}</p>}
-          {notice && <p style={{ color: '#baff3d', fontSize: '13px', margin: 0 }}>{notice}</p>}
 
           <button
             type="submit"
@@ -330,7 +372,7 @@ function AuthModal({ initialMode = 'login', onClose }) {
         <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: '#948e9f' }}>
           {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}{' '}
           <span
-            onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(null); setNotice(null); setConfirmPassword('') }}
+            onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(null); setConfirmPassword('') }}
             style={{ color: '#ffe16d', cursor: 'pointer', textDecoration: 'underline' }}
           >
             {mode === 'login' ? '회원가입' : '로그인'}
