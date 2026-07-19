@@ -130,16 +130,25 @@ async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set(
 async function getUserId(request, env) {
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
-  if (!token || !supabaseUrl || !env.SUPABASE_SERVICE_ROLE_KEY) return null
+  if (!token || !supabaseUrl || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[recommend] getUserId skipped: missing token/supabaseUrl/serviceRoleKey', {
+      hasToken: !!token, hasSupabaseUrl: !!supabaseUrl, hasServiceRoleKey: !!env.SUPABASE_SERVICE_ROLE_KEY,
+    })
+    return null
+  }
 
   try {
     const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${token}`, apikey: env.SUPABASE_SERVICE_ROLE_KEY },
     })
-    if (!userResponse.ok) return null
+    if (!userResponse.ok) {
+      console.error('[recommend] getUserId auth lookup failed', userResponse.status, await userResponse.text())
+      return null
+    }
     const user = await userResponse.json()
     return user.id || null
-  } catch {
+  } catch (err) {
+    console.error('[recommend] getUserId threw', err)
     return null
   }
 }
@@ -151,10 +160,14 @@ async function fetchPreviouslyRecommendedTitles(userId, env) {
       `${supabaseUrl}/rest/v1/recommended_books?user_id=eq.${userId}&select=title`,
       { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } }
     )
-    if (!res.ok) return new Set()
+    if (!res.ok) {
+      console.error('[recommend] fetchPreviouslyRecommendedTitles failed', res.status, await res.text())
+      return new Set()
+    }
     const rows = await res.json()
     return new Set(rows.map(row => row.title))
-  } catch {
+  } catch (err) {
+    console.error('[recommend] fetchPreviouslyRecommendedTitles threw', err)
     return new Set()
   }
 }
@@ -162,7 +175,7 @@ async function fetchPreviouslyRecommendedTitles(userId, env) {
 async function saveRecommendedBooks(userId, books, env) {
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   try {
-    await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/recommended_books`, {
       method: 'POST',
       headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -172,8 +185,12 @@ async function saveRecommendedBooks(userId, books, env) {
       },
       body: JSON.stringify(books.map(book => ({ user_id: userId, title: book.title, author: book.author }))),
     })
-  } catch {
+    if (!res.ok) {
+      console.error('[recommend] saveRecommendedBooks insert failed', res.status, await res.text())
+    }
+  } catch (err) {
     // 이력 저장 실패는 추천 결과 자체에 영향을 주지 않도록 무시한다.
+    console.error('[recommend] saveRecommendedBooks threw', err)
   }
 }
 
