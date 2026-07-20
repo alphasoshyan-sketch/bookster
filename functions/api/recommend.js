@@ -3,10 +3,6 @@ import { CORS_HEADERS, handleOptions } from './_cors.js'
 
 export const onRequestOptions = handleOptions
 
-let __fetchCount = 0
-const __origFetch = globalThis.fetch
-globalThis.fetch = (...args) => { __fetchCount++; return __origFetch(...args) }
-
 // 표지 검색(알라딘/예스24/교보)은 실패할 수 있으므로 찾으면 붙이고 못 찾아도 책 자체는
 // 그대로 통과시킨다 (프론트엔드가 coverUrl 없는 책은 Google Books로 다시 조회한다).
 async function resolveBooks(books, env) {
@@ -271,7 +267,7 @@ ${excludeNote}
     const books = await selectBooks(parsed, zodiac, mbti, env, excludeTitles)
     if (userId) await saveRecommendedBooks(userId, books, env)
     return new Response(JSON.stringify(books), {
-      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'X-Fetch-Count': String(__fetchCount) },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     })
   } catch {
     return new Response(JSON.stringify({ error: '응답 파싱에 실패했습니다.' }), {

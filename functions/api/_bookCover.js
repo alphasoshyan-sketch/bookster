@@ -1,3 +1,5 @@
+import { hasBudget } from './_fetchBudget.js'
+
 const UA_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
   'Accept-Language': 'ko-KR,ko;q=0.9',
@@ -59,7 +61,7 @@ async function searchAladinOnce(title, query, env) {
 async function searchAladin(title, author, env) {
   if (!env.ALADIN_TTB_KEY) return []
   const combined = await searchAladinOnce(title, `${title} ${author}`, env)
-  if (combined.length) return combined
+  if (combined.length || !hasBudget()) return combined
   return searchAladinOnce(title, title, env)
 }
 
@@ -88,7 +90,7 @@ async function searchYes24Once(title, query) {
 
 async function searchYes24(title, author) {
   const combined = await searchYes24Once(title, `${title} ${author}`)
-  if (combined.length) return combined
+  if (combined.length || !hasBudget()) return combined
   return searchYes24Once(title, title)
 }
 
@@ -120,11 +122,13 @@ async function searchKyoboOnce(title, query) {
 
 async function searchKyobo(title, author) {
   const combined = await searchKyoboOnce(title, `${title} ${author}`)
-  if (combined.length) return combined
+  if (combined.length || !hasBudget()) return combined
   return searchKyoboOnce(title, title)
 }
 
 export async function findLatestCover(title, author, env) {
+  if (!hasBudget()) return null
+
   const [aladin, yes24, kyobo] = await Promise.all([
     searchAladin(title, author, env),
     searchYes24(title, author),
