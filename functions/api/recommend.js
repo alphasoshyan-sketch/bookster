@@ -92,7 +92,9 @@ function dedupByTitle(books) {
 
 // LLM이 정확히 10권을 채우지 못하거나 중복 제목을 내놓는 경우가 있어,
 // 부족한 만큼 폴백 목록에서 채워 최대 10권까지 채운다. 폴백 표지 조회는
-// Cloudflare Workers의 subrequest 한도를 넘지 않도록 실제로 부족한 만큼만 수행한다.
+// Cloudflare Workers의 subrequest 한도를 넘지 않도록 정확히 부족한 개수만큼만
+// slice해서 수행한다(예전에는 필터링만 하고 slice를 안 해 남은 폴백 전부를
+// 조회하는 바람에 한도를 넘기는 원인이 됐었다).
 // excludeTitles(로그인 사용자의 이전 추천작)는 항상 걸러내며, 그 결과 10권을
 // 못 채우더라도(추천 이력이 많이 쌓인 경우) 중복 추천은 하지 않는다.
 async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set()) {
@@ -114,7 +116,10 @@ async function selectBooks(llmBooks, zodiac, mbti, env, excludeTitles = new Set(
   collect(verifiedLlmBooks)
 
   if (picked.length < 10) {
-    const remainingFallback = fallback.filter(b => !used.has(b.title) && !excludeTitles.has(b.title))
+    const shortfall = 10 - picked.length
+    const remainingFallback = fallback
+      .filter(b => !used.has(b.title) && !excludeTitles.has(b.title))
+      .slice(0, shortfall)
     collect(await resolveBooks(remainingFallback, env))
   }
 

@@ -6,14 +6,21 @@
 // 여기서 전체 fetch 횟수를 세어, 한도에 가까워지면 표지 검색처럼 "실패해도 괜찮은"
 // 요청은 미리 건너뛰게 하고, 이력 저장처럼 반드시 성공해야 하는 마지막 fetch를 위한
 // 여유분을 항상 남겨둔다.
+// 실제 한도(무료 플랜 기준 요청당 50)를 정확히 알 수 없고 45로도 한도 초과가
+// 재현되어, 확실히 안전한 수준까지 크게 낮췄다. 그래도 초과하면 실패 시점의
+// count를 로그로 남겨 실제 한도를 파악한다.
 let count = 0
-const BUDGET = 45
-const RESERVED = 3
+const BUDGET = 20
+const RESERVED = 5
 
 const originalFetch = globalThis.fetch
 globalThis.fetch = (...args) => {
   count++
-  return originalFetch(...args)
+  const currentCount = count
+  return originalFetch(...args).catch(err => {
+    console.error('[fetchBudget] fetch threw', 'count=', currentCount, err && err.message)
+    throw err
+  })
 }
 
 export function hasBudget() {
