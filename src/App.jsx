@@ -67,6 +67,23 @@ const ZODIAC_SIGNS = [
   },
 ]
 
+function getPathForPage(page) {
+  switch (page) {
+    case 'home':
+      return '/home'
+    case 'result':
+      return '/result'
+    default:
+      return '/'
+  }
+}
+
+function getPageFromPath(pathname) {
+  if (pathname === '/home') return 'home'
+  if (pathname === '/result') return 'result'
+  return 'onboarding'
+}
+
 function ZodiacConstellation({ points, edges, size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ overflow: 'visible' }}>
@@ -521,17 +538,6 @@ function AppHeader({ hideAuthButton = false }) {
               </button>
             </div>
           </div>
-        ) : !hideAuthButton ? (
-          <button
-            onClick={() => setAuthOpen(true)}
-            style={{
-              fontSize: '13px', fontWeight: 600, color: '#390094',
-              background: 'linear-gradient(to right, #9d7bff, #cebdff)',
-              border: 'none', borderRadius: '9999px', padding: '8px 16px', cursor: 'pointer',
-            }}
-          >
-            로그인
-          </button>
         ) : null}
       </header>
 
@@ -1055,7 +1061,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
 }
 
 export default function App() {
-  const [page, setPage] = useState('onboarding')
+  const [page, setPage] = useState(() => (typeof window !== 'undefined' ? getPageFromPath(window.location.pathname) : 'onboarding'))
   const [selectedZodiac, setSelectedZodiac] = useState(null)
   const [selectedMbti, setSelectedMbti] = useState(null)
   const [books, setBooks] = useState(null)
@@ -1075,6 +1081,26 @@ export default function App() {
     }, 1000)
     return () => clearInterval(id)
   }, [loading])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextPage = getPageFromPath(window.location.pathname)
+      setPage(nextPage)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  function navigateToPage(nextPage, { replace = false } = {}) {
+    const nextPath = getPathForPage(nextPage)
+    if (replace) {
+      window.history.replaceState({ page: nextPage }, '', nextPath)
+    } else {
+      window.history.pushState({ page: nextPage }, '', nextPath)
+    }
+    setPage(nextPage)
+  }
 
   function handleMbtiSelect(type) {
     setSelectedMbti(prev => prev === type ? null : type)
@@ -1103,7 +1129,7 @@ export default function App() {
       const data = JSON.parse(text)
       if (!res.ok) throw new Error(data.error || '추천 요청 중 오류가 발생했습니다.')
       setBooks(data)
-      setPage('result')
+      navigateToPage('result')
     } catch (e) {
       const fallbackBooks = buildFallbackBooks(selectedZodiac.name, selectedMbti)
       setBooks(fallbackBooks)
@@ -1119,11 +1145,11 @@ export default function App() {
     setSelectedZodiac(null)
     setSelectedMbti(null)
     setError(null)
-    setPage('onboarding')
+    navigateToPage('onboarding', { replace: true })
   }
 
   if (page === 'onboarding') {
-    return <OnboardingPage onStart={() => setPage('home')} />
+    return <OnboardingPage onStart={() => navigateToPage('home')} />
   }
 
   if (page === 'result' && books) {
@@ -1141,8 +1167,7 @@ export default function App() {
       <AppHeader />
 
       <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
-
-        <section style={{ marginTop: '32px' }}>
+        <section style={{ marginTop: '8px' }}>
           <h2 className="font-serif" style={{ fontSize: '24px', fontWeight: 600, color: '#e0e3e5', marginBottom: '16px' }}>
             당신의 별자리를 선택하세요
           </h2>
