@@ -482,10 +482,11 @@ function WithdrawModal({ onClose }) {
   )
 }
 
-function AppHeader({ hideAuthButton = false }) {
+function AppHeader({ hideAuthButton = false, onLogout }) {
   const session = useSupabaseSession()
   const [authOpen, setAuthOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const showAuthActions = !hideAuthButton && session
 
   return (
     <>
@@ -510,14 +511,14 @@ function AppHeader({ hideAuthButton = false }) {
           </h1>
         </div>
 
-        {session ? (
+        {showAuthActions ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '13px', color: '#cbc3d5', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user.email}
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
               <button
-                onClick={() => supabase.auth.signOut()}
+                onClick={onLogout ?? (() => {})}
                 style={{
                   fontSize: '13px', fontWeight: 600, color: '#e0e3e5',
                   background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
@@ -898,7 +899,7 @@ function BookGrid({ entries, zodiac, mbti }) {
   )
 }
 
-function ResultPage({ books, zodiac, mbti, onReset }) {
+function ResultPage({ books, zodiac, mbti, onReset, onLogout }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
 
   useEffect(() => {
@@ -981,7 +982,7 @@ function ResultPage({ books, zodiac, mbti, onReset }) {
       <StarField />
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(white, rgba(255,255,255,0.2) 2px, transparent 40px)', backgroundSize: '100px 100px', opacity: 0.1 }} />
 
-      <AppHeader />
+      <AppHeader onLogout={onLogout} />
 
       <main className="result-main" style={{ position: 'relative', zIndex: 10, padding: '96px 24px 120px', margin: '0 auto' }}>
         <div style={{ marginBottom: '32px', textAlign: 'center' }}>
@@ -1140,6 +1141,14 @@ export default function App() {
     }
   }
 
+  function resetToOnboarding() {
+    setBooks(null)
+    setSelectedZodiac(null)
+    setSelectedMbti(null)
+    setError(null)
+    navigateToPage('onboarding', { replace: true })
+  }
+
   function handleReset() {
     setBooks(null)
     setSelectedZodiac(null)
@@ -1148,12 +1157,21 @@ export default function App() {
     navigateToPage('home', { replace: true })
   }
 
+  async function handleLogout() {
+    resetToOnboarding()
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('로그아웃 중 오류가 발생했습니다.', error)
+    }
+  }
+
   if (page === 'onboarding') {
     return <OnboardingPage onStart={() => navigateToPage('home')} />
   }
 
   if (page === 'result' && books) {
-    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} />
+    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} onLogout={handleLogout} />
   }
 
   return (
@@ -1164,7 +1182,7 @@ export default function App() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <StarField />
-      <AppHeader />
+      <AppHeader onLogout={handleLogout} />
 
       <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
         <section style={{ marginTop: '8px' }}>
