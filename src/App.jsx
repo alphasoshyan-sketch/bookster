@@ -1145,7 +1145,7 @@ export default function App() {
     setSelectedZodiac(null)
     setSelectedMbti(null)
     setError(null)
-    navigateToPage('onboarding', { replace: true })
+    navigateToPage('home', { replace: true })
   }
 
   if (page === 'onboarding') {
