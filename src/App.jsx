@@ -204,17 +204,32 @@ function useSupabaseSession() {
   const [session, setSession] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession)
-    })
-    return () => listener.subscription.unsubscribe()
+    let mounted = true
+    let subscription = null
+
+    async function initSession() {
+      const { data } = await supabase.auth.getSession()
+      if (!mounted) return
+      setSession(data.session)
+
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        if (!mounted) return
+        setSession(newSession)
+      })
+      subscription = listener.subscription
+    }
+
+    initSession()
+    return () => {
+      mounted = false
+      subscription?.unsubscribe()
+    }
   }, [])
 
   return session
 }
 
-function AuthModal({ initialMode = 'login', onClose }) {
+function AuthModal({ initialMode = 'login', onClose, onSuccess }) {
   const [mode, setMode] = useState(initialMode) // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -251,6 +266,7 @@ function AuthModal({ initialMode = 'login', onClose }) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
         if (signInError) throw signInError
         onClose()
+        onSuccess?.()
       }
     } catch (err) {
       setError(err.message || '오류가 발생했습니다. 다시 시도해주세요.')
@@ -482,11 +498,20 @@ function WithdrawModal({ onClose }) {
   )
 }
 
-function AppHeader({ hideAuthButton = false, onLogout }) {
-  const session = useSupabaseSession()
+function AppHeader({ hideAuthButton = false, onLogout, session, showLogoutButton = true, showWithdrawButton = true }) {
   const [authOpen, setAuthOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const showAuthActions = !hideAuthButton && session
+  const actionButtonStyle = {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#e0e3e5',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: '9999px',
+    padding: '6px 14px',
+    cursor: 'pointer',
+  }
 
   return (
     <>
@@ -513,30 +538,26 @@ function AppHeader({ hideAuthButton = false, onLogout }) {
 
         {showAuthActions ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', color: '#cbc3d5', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '13px', color: '#cbc3d5', maxWidth: '240px', overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-all' }}>
               {session.user.email}
             </span>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-              <button
-                onClick={onLogout ?? (() => {})}
-                style={{
-                  fontSize: '13px', fontWeight: 600, color: '#e0e3e5',
-                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '9999px', padding: '6px 14px', cursor: 'pointer',
-                }}
-              >
-                로그아웃
-              </button>
-              <button
-                onClick={() => setWithdrawOpen(true)}
-                style={{
-                  fontSize: '11px', fontWeight: 500, color: '#7a7484',
-                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
-              >
-                탈퇴하기
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+              {showLogoutButton ? (
+                <button
+                  onClick={onLogout ?? (() => {})}
+                  style={actionButtonStyle}
+                >
+                  로그아웃
+                </button>
+              ) : null}
+              {showWithdrawButton ? (
+                <button
+                  onClick={() => setWithdrawOpen(true)}
+                  style={actionButtonStyle}
+                >
+                  탈퇴하기
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -553,8 +574,7 @@ function AppHeader({ hideAuthButton = false, onLogout }) {
   )
 }
 
-function OnboardingPage({ onStart }) {
-  const session = useSupabaseSession()
+function OnboardingPage({ onStart, session }) {
   const [authMode, setAuthMode] = useState(null) // null | 'login' | 'signup'
 
   return (
@@ -572,7 +592,7 @@ function OnboardingPage({ onStart }) {
         <StarCanvas />
       </div>
 
-      <AppHeader hideAuthButton />
+      <AppHeader hideAuthButton session={session} />
 
       {/* 메인 */}
       <main style={{
@@ -654,36 +674,34 @@ function OnboardingPage({ onStart }) {
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
             </motion.button>
 
-            {!session && (
-              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                <button
-                  onClick={() => setAuthMode('login')}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '9999px',
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                  }}
-                >
-                  로그인
-                </button>
-                <button
-                  onClick={() => setAuthMode('signup')}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: '9999px',
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                  }}
-                >
-                  가입하기
-                </button>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button
+                onClick={() => setAuthMode('login')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '9999px',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                }}
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => setAuthMode('signup')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '9999px',
+                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#e0e3e5', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                }}
+              >
+                가입하기
+              </button>
+            </div>
           </motion.div>
         </section>
       </main>
 
       <AnimatePresence>
-        {authMode && <AuthModal initialMode={authMode} onClose={() => setAuthMode(null)} />}
+        {authMode && <AuthModal initialMode={authMode} onClose={() => setAuthMode(null)} onSuccess={onStart} />}
       </AnimatePresence>
     </motion.div>
   )
@@ -899,7 +917,7 @@ function BookGrid({ entries, zodiac, mbti }) {
   )
 }
 
-function ResultPage({ books, zodiac, mbti, onReset, onLogout }) {
+function ResultPage({ books, zodiac, mbti, onReset, onLogout, onGoStart, session }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
 
   useEffect(() => {
@@ -982,7 +1000,7 @@ function ResultPage({ books, zodiac, mbti, onReset, onLogout }) {
       <StarField />
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(white, rgba(255,255,255,0.2) 2px, transparent 40px)', backgroundSize: '100px 100px', opacity: 0.1 }} />
 
-      <AppHeader onLogout={onLogout} />
+      <AppHeader onLogout={onLogout} session={session} />
 
       <main className="result-main" style={{ position: 'relative', zIndex: 10, padding: '96px 24px 120px', margin: '0 auto' }}>
         <div style={{ marginBottom: '32px', textAlign: 'center' }}>
@@ -1054,6 +1072,26 @@ function ResultPage({ books, zodiac, mbti, onReset, onLogout }) {
             <span className="material-symbols-outlined">refresh</span>
             <span>다시 하기</span>
           </motion.button>
+
+          {!session && (
+            <motion.button
+              onClick={onGoStart}
+              type="button"
+              style={{
+                width: '100%', height: '56px',
+                background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#e0e3e5', fontWeight: 600, fontSize: '16px',
+                borderRadius: '12px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+              whileHover={{ borderColor: '#ffe16d', boxShadow: '0 0 12px rgba(255,225,105,0.2)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="material-symbols-outlined">home</span>
+              <span>처음 화면으로</span>
+            </motion.button>
+          )}
         </motion.div>
 
       </main>
@@ -1065,6 +1103,13 @@ export default function App() {
   const [page, setPage] = useState(() => (typeof window !== 'undefined' ? getPageFromPath(window.location.pathname) : 'onboarding'))
   const [selectedZodiac, setSelectedZodiac] = useState(null)
   const [selectedMbti, setSelectedMbti] = useState(null)
+  const session = useSupabaseSession()
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      supabase.auth.signOut().catch(() => {})
+    }
+  }, [])
   const [books, setBooks] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -1167,11 +1212,11 @@ export default function App() {
   }
 
   if (page === 'onboarding') {
-    return <OnboardingPage onStart={() => navigateToPage('home')} />
+    return <OnboardingPage onStart={() => navigateToPage('home')} session={session} />
   }
 
   if (page === 'result' && books) {
-    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} onLogout={handleLogout} />
+    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} onLogout={handleLogout} onGoStart={resetToOnboarding} session={session} />
   }
 
   return (
@@ -1182,7 +1227,7 @@ export default function App() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <StarField />
-      <AppHeader onLogout={handleLogout} />
+      <AppHeader onLogout={handleLogout} session={session} showLogoutButton={false} showWithdrawButton={false} />
 
       <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
         <section style={{ marginTop: '8px' }}>

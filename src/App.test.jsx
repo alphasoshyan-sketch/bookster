@@ -54,6 +54,19 @@ describe('App', () => {
     expect(screen.getByText(/별들의 도서관/i)).toBeInTheDocument()
   })
 
+  it('still shows login and signup buttons on onboarding even if a session exists', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+      data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
+    })
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /로그인/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /가입하기/i })).toBeInTheDocument()
+    })
+  })
+
   it('supports browser back navigation from the home page to onboarding', async () => {
     render(<App />)
 
@@ -91,6 +104,67 @@ describe('App', () => {
       expect(screen.getByText(/당신의 별자리를 선택하세요/i)).toBeInTheDocument()
     })
     expect(window.location.pathname).toBe('/home')
+  })
+
+  it('shows the logged-in account email after login on the result page', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+      data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
+    })
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify([{ title: '테스트 책', author: '테스트 작가' }]),
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /시작하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /양자리/i }))
+    fireEvent.click(screen.getByRole('button', { name: /INTJ/i }))
+    fireEvent.click(screen.getByRole('button', { name: /추천 받기/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/test@example.com/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows a start screen button for anonymous users and returns to onboarding', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify([{ title: '테스트 책', author: '테스트 작가' }]),
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /시작하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /양자리/i }))
+    fireEvent.click(screen.getByRole('button', { name: /INTJ/i }))
+    fireEvent.click(screen.getByRole('button', { name: /추천 받기/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /처음 화면으로/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /처음 화면으로/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/당신의 별이 들려주는/i)).toBeInTheDocument()
+    })
+    expect(window.location.pathname).toBe('/')
+  })
+
+  it('hides the account actions on the second page for signed-in users', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /시작하기/i }))
+
+    await screen.findByText('test@example.com')
+
+    expect(screen.queryByRole('button', { name: /로그아웃/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /탈퇴하기/i })).not.toBeInTheDocument()
   })
 
   it('returns to onboarding when the logout button is clicked from the result page', async () => {
