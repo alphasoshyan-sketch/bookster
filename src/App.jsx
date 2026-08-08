@@ -416,9 +416,20 @@ function AuthModal({ initialMode = 'login', onClose, onSuccess }) {
   )
 }
 
-function WithdrawModal({ onClose }) {
+function WithdrawModal({ onClose, onSuccess, isOpen }) {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null)
+      setSubmitting(false)
+      return
+    }
+
+    setError(null)
+    setSubmitting(false)
+  }, [isOpen])
 
   async function handleConfirm() {
     setError(null)
@@ -429,9 +440,17 @@ function WithdrawModal({ onClose }) {
         method: 'POST',
         headers: { Authorization: `Bearer ${session?.access_token}` },
       })
-      const result = await response.json()
+
+      let result = {}
+      try {
+        result = await response.json()
+      } catch {
+        result = {}
+      }
+
       if (!response.ok) throw new Error(result.error || '탈퇴 처리에 실패했습니다.')
       await supabase.auth.signOut()
+      onSuccess?.()
       onClose()
     } catch (err) {
       setError(err.message || '오류가 발생했습니다. 다시 시도해주세요.')
@@ -498,7 +517,7 @@ function WithdrawModal({ onClose }) {
   )
 }
 
-function AppHeader({ hideAuthButton = false, onLogout, session, showLogoutButton = true, showWithdrawButton = true }) {
+function AppHeader({ hideAuthButton = false, onLogout, onWithdrawSuccess, session, showLogoutButton = true, showWithdrawButton = true }) {
   const [authOpen, setAuthOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const showAuthActions = !hideAuthButton && session
@@ -568,7 +587,7 @@ function AppHeader({ hideAuthButton = false, onLogout, session, showLogoutButton
       </AnimatePresence>
 
       <AnimatePresence>
-        {withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}
+        {withdrawOpen && <WithdrawModal isOpen={withdrawOpen} onClose={() => setWithdrawOpen(false)} onSuccess={onWithdrawSuccess} />}
       </AnimatePresence>
     </>
   )
@@ -917,7 +936,7 @@ function BookGrid({ entries, zodiac, mbti }) {
   )
 }
 
-function ResultPage({ books, zodiac, mbti, onReset, onLogout, onGoStart, session }) {
+function ResultPage({ books, zodiac, mbti, onReset, onLogout, onGoStart, onWithdrawSuccess, session }) {
   const [covers, setCovers] = useState(Array(books.length).fill(undefined))
 
   useEffect(() => {
@@ -1000,7 +1019,7 @@ function ResultPage({ books, zodiac, mbti, onReset, onLogout, onGoStart, session
       <StarField />
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(white, rgba(255,255,255,0.2) 2px, transparent 40px)', backgroundSize: '100px 100px', opacity: 0.1 }} />
 
-      <AppHeader onLogout={onLogout} session={session} />
+      <AppHeader onLogout={onLogout} onWithdrawSuccess={onWithdrawSuccess} session={session} />
 
       <main className="result-main" style={{ position: 'relative', zIndex: 10, padding: '96px 24px 120px', margin: '0 auto' }}>
         <div style={{ marginBottom: '32px', textAlign: 'center' }}>
@@ -1211,12 +1230,16 @@ export default function App() {
     }
   }
 
+  function handleWithdrawSuccess() {
+    resetToOnboarding()
+  }
+
   if (page === 'onboarding') {
     return <OnboardingPage onStart={() => navigateToPage('home')} session={session} />
   }
 
   if (page === 'result' && books) {
-    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} onLogout={handleLogout} onGoStart={resetToOnboarding} session={session} />
+    return <ResultPage books={books} zodiac={selectedZodiac} mbti={selectedMbti} onReset={handleReset} onLogout={handleLogout} onGoStart={resetToOnboarding} onWithdrawSuccess={handleWithdrawSuccess} session={session} />
   }
 
   return (
@@ -1227,7 +1250,7 @@ export default function App() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <StarField />
-      <AppHeader onLogout={handleLogout} session={session} showLogoutButton={false} showWithdrawButton={false} />
+      <AppHeader onLogout={handleLogout} onWithdrawSuccess={handleWithdrawSuccess} session={session} showLogoutButton={false} showWithdrawButton={false} />
 
       <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
         <section style={{ marginTop: '8px' }}>

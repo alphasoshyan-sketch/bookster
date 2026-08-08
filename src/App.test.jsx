@@ -192,4 +192,71 @@ describe('App', () => {
     })
     expect(window.location.pathname).toBe('/')
   })
+
+  it('returns to onboarding when the withdrawal confirmation is accepted', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
+    })
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null })
+    vi.spyOn(global, 'fetch').mockImplementation((url) => {
+      if (url === '/api/delete-account') {
+        return Promise.resolve({ ok: true, json: async () => ({}) })
+      }
+      if (url === '/api/recommend') {
+        return Promise.resolve({ ok: true, text: async () => JSON.stringify([{ title: '테스트 책', author: '테스트 작가' }]) })
+      }
+      return Promise.resolve({ ok: true, text: async () => '' })
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /시작하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /양자리/i }))
+    fireEvent.click(screen.getByRole('button', { name: /INTJ/i }))
+    fireEvent.click(screen.getByRole('button', { name: /추천 받기/i }))
+
+    await screen.findByText('test@example.com')
+    fireEvent.click(screen.getByRole('button', { name: /탈퇴하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^네$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/당신의 별이 들려주는/i)).toBeInTheDocument()
+    })
+    expect(window.location.pathname).toBe('/')
+  })
+
+  it('does not keep a previous withdrawal failure message when the modal is reopened', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
+    })
+    vi.spyOn(global, 'fetch').mockImplementation((url) => {
+      if (url === '/api/delete-account') {
+        return Promise.resolve({ ok: false, json: async () => ({ error: '탈퇴 처리에 실패했습니다.' }) })
+      }
+      if (url === '/api/recommend') {
+        return Promise.resolve({ ok: true, text: async () => JSON.stringify([{ title: '테스트 책', author: '테스트 작가' }]) })
+      }
+      return Promise.resolve({ ok: true, text: async () => '' })
+    })
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /시작하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /양자리/i }))
+    fireEvent.click(screen.getByRole('button', { name: /INTJ/i }))
+    fireEvent.click(screen.getByRole('button', { name: /추천 받기/i }))
+
+    await screen.findByText('test@example.com')
+    fireEvent.click(screen.getByRole('button', { name: /탈퇴하기/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^네$/i }))
+
+    await screen.findByText('탈퇴 처리에 실패했습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: /아니오/i }))
+    fireEvent.click(screen.getByRole('button', { name: /탈퇴하기/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('탈퇴 처리에 실패했습니다.')).not.toBeInTheDocument()
+    })
+  })
 })
