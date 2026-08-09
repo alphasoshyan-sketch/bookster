@@ -152,7 +152,7 @@ describe('App', () => {
     expect(window.location.pathname).toBe('/')
   })
 
-  it('hides the account actions on the second page for signed-in users', async () => {
+  it('shows the account actions on the recommendation page for signed-in users', async () => {
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: { user: { email: 'test@example.com' }, access_token: 'token' } },
     })
@@ -163,8 +163,8 @@ describe('App', () => {
 
     await screen.findByText('test@example.com')
 
-    expect(screen.queryByRole('button', { name: /로그아웃/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /탈퇴하기/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /로그아웃/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /탈퇴하기/i })).toBeInTheDocument()
   })
 
   it('returns to onboarding when the logout button is clicked from the result page', async () => {

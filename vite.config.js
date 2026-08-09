@@ -1,24 +1,28 @@
-import { readFileSync, existsSync } from 'node:fs'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { onRequestPost as recommendHandler } from './functions/api/recommend.js'
-import { onRequestPost as deleteAccountHandler } from './functions/api/delete-account.js'
 
-// Cloudflare Pages Functions용 로컬 시크릿 파일(.dev.vars, gitignore 처리됨)을
-// vite dev 서버의 process.env에도 반영해 함수 핸들러가 그대로 사용할 수 있게 한다.
-function loadDevVars() {
-  if (!existsSync('.dev.vars')) return
-  for (const line of readFileSync('.dev.vars', 'utf-8').split('\n')) {
-    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/)
-    if (!match) continue
-    const [, key, value = ''] = match
-    if (!(key in process.env)) process.env[key] = value.trim()
-  }
+function buildFallbackBooks(zodiac, mbti) {
+  return [
+    {
+      title: '코스모스',
+      author: '칼 세이건',
+      reason: `${zodiac}의 호기심과 ${mbti}의 탐구심을 함께 끌어올려 주는 과학 교양서입니다. 복잡한 우주를 쉽게 풀어내며 생각의 폭을 넓혀줍니다.`,
+    },
+    {
+      title: '아몬드',
+      author: '손원평',
+      reason: `${zodiac}의 감수성과 ${mbti}의 깊은 내면 성향을 잘 살려주는 소설입니다. 인간의 마음을 정교하게 그려내며 여운을 남깁니다.`,
+    },
+    {
+      title: '나는 나로 살기로 했다',
+      author: '김수현',
+      reason: `${zodiac}의 자신만의 길을 찾고 싶은 마음과 ${mbti}의 자기 이해 욕구를 잘 반영한 자기계발서입니다. 삶의 방향을 정리하는 데 도움이 됩니다.`,
+    },
+  ]
 }
 
 export default defineConfig(({ mode }) => {
-  loadDevVars()
   const env = loadEnv(mode, process.cwd(), '')
   const basePath = env.VITE_BASE_PATH || (process.env.GITHUB_ACTIONS ? '/bookster/' : '/')
 
@@ -27,11 +31,65 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       {
-        // Cloudflare Pages Functions(functions/api/recommend.js)를 그대로 호출해, 로컬
-        // dev 서버와 배포 환경의 추천 로직이 항상 같은 코드 경로를 타도록 한다
-        // (예전에는 이 파일에 로직을 복제해뒀다가 배포판과 어긋나는 문제가 있었다).
         name: 'recommend-api-dev-handler',
         configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url?.startsWith('/api/')) {
+              next()
+              return
+            }
+
+            if (req.method !== 'GET') {
+              next()
+              return
+            }
+
+            const url = req.url || '/'
+            if (url.includes('.') || url.startsWith('/@') || url.startsWith('/src/')) {
+              next()
+              return
+            }
+
+            req.url = '/index.html'
+            next()
+          })
+
+          server.middlewares.use('/api/delete-account', async (req, res, next) => {
+            if (req.method !== 'POST') {
+              next()
+              return
+            }
+
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ success: true, localMode: true }))
+          })
+
+          server.middlewares.use('/api/send-signup-email', async (req, res, next) => {
+            if (req.method !== 'POST') {
+              next()
+              return
+            }
+
+            let body = ''
+            req.on('data', chunk => {
+              body += chunk
+            })
+
+            req.on('end', () => {
+              try {
+                const { email } = JSON.parse(body || '{}')
+                res.statusCode = 200
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ success: true, localMode: true, email }))
+              } catch (error) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: error.message || '잘못된 요청입니다.' }))
+              }
+            })
+          })
+
           server.middlewares.use('/api/recommend', async (req, res, next) => {
             if (req.method !== 'POST') {
               next()
@@ -45,59 +103,85 @@ export default defineConfig(({ mode }) => {
 
             req.on('end', async () => {
               try {
-                const request = new Request('http://localhost/api/recommend', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body,
-                })
-                const devEnv = {
-                  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-                  ALADIN_TTB_KEY: process.env.ALADIN_TTB_KEY,
+                const { zodiac, mbti } = JSON.parse(body || '{}')
+
+                if (!zodiac || !mbti) {
+                  res.statusCode = 400
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify({ error: '별자리와 MBTI를 모두 입력해주세요.' }))
+                  return
                 }
 
-                const response = await recommendHandler({ request, env: devEnv })
-                res.statusCode = response.status
-                res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json')
-                res.end(await response.text())
+                const apiKey = process.env.OPENAI_API_KEY
+                if (!apiKey) {
+                  res.statusCode = 200
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify(buildFallbackBooks(zodiac, mbti)))
+                  return
+                }
+
+                const prompt = `당신은 도서 추천 전문가입니다.
+사용자의 별자리는 "${zodiac}"이고 MBTI는 "${mbti}"입니다.
+이 사람의 성향에 딱 맞는 실제로 존재하는 책 세 권을 추천해주세요. 서로 다른 장르로 골라주세요.
+
+반드시 아래 JSON 배열 형식으로만 답하세요. 다른 텍스트는 절대 포함하지 마세요:
+[
+  {
+    "title": "책 제목",
+    "author": "저자명",
+    "reason": "이 책을 추천하는 이유 (2~3문장, 별자리와 MBTI 성향과 연결해서 설명)"
+  },
+  {
+    "title": "책 제목",
+    "author": "저자명",
+    "reason": "이 책을 추천하는 이유 (2~3문장, 별자리와 MBTI 성향과 연결해서 설명)"
+  },
+  {
+    "title": "책 제목",
+    "author": "저자명",
+    "reason": "이 책을 추천하는 이유 (2~3문장, 별자리와 MBTI 성향과 연결해서 설명)"
+  }
+]`
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.8,
+                  }),
+                })
+
+                if (!response.ok) {
+                  res.statusCode = 500
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify({ error: 'OpenAI API 호출에 실패했습니다.' }))
+                  return
+                }
+
+                const data = await response.json()
+                const content = data.choices?.[0]?.message?.content?.trim() || ''
+
+                try {
+                  const books = JSON.parse(content)
+                  res.statusCode = 200
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify(books))
+                } catch {
+                  res.statusCode = 500
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify({ error: '응답 파싱에 실패했습니다.' }))
+                }
               } catch (error) {
                 res.statusCode = 500
                 res.setHeader('Content-Type', 'application/json')
                 res.end(JSON.stringify({ error: error.message || '추천 요청 중 오류가 발생했습니다.' }))
               }
             })
-          })
-        },
-      },
-      {
-        // Cloudflare Pages Functions(functions/api/delete-account.js)를 그대로 호출해,
-        // 로컬 dev 서버에서도 회원 탈퇴 플로우를 배포 환경과 같은 코드 경로로 테스트할 수 있게 한다.
-        name: 'delete-account-api-dev-handler',
-        configureServer(server) {
-          server.middlewares.use('/api/delete-account', async (req, res, next) => {
-            if (req.method !== 'POST') {
-              next()
-              return
-            }
-
-            try {
-              const devEnv = {
-                SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-                SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-              }
-              const request = new Request('http://localhost/api/delete-account', {
-                method: 'POST',
-                headers: { Authorization: req.headers.authorization || '' },
-              })
-
-              const response = await deleteAccountHandler({ request, env: devEnv })
-              res.statusCode = response.status
-              res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json')
-              res.end(await response.text())
-            } catch (error) {
-              res.statusCode = 500
-              res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify({ error: error.message || '탈퇴 처리 중 오류가 발생했습니다.' }))
-            }
           })
         },
       },

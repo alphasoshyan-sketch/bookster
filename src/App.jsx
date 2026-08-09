@@ -1250,7 +1250,7 @@ export default function App() {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <StarField />
-      <AppHeader onLogout={handleLogout} onWithdrawSuccess={handleWithdrawSuccess} session={session} showLogoutButton={false} showWithdrawButton={false} />
+      <AppHeader onLogout={handleLogout} onWithdrawSuccess={handleWithdrawSuccess} session={session} />
 
       <main className="app-main" style={{ padding: '24px 24px 120px', margin: '64px auto 0' }}>
         <section style={{ marginTop: '8px' }}>
