@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -22,8 +24,44 @@ function buildFallbackBooks(zodiac, mbti) {
   ]
 }
 
+function loadDevVars(cwd = process.cwd()) {
+  const devVarsPath = path.join(cwd, '.dev.vars')
+  if (!fs.existsSync(devVarsPath)) {
+    return {}
+  }
+
+  return fs.readFileSync(devVarsPath, 'utf8')
+    .split(/\r?\n/)
+    .reduce((acc, line) => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) {
+        return acc
+      }
+
+      const separatorIndex = trimmed.indexOf('=')
+      if (separatorIndex === -1) {
+        return acc
+      }
+
+      const key = trimmed.slice(0, separatorIndex).trim()
+      const value = trimmed.slice(separatorIndex + 1).trim()
+      if (key) {
+        acc[key] = value
+      }
+      return acc
+    }, {})
+}
+
+export function loadRuntimeEnv(mode, cwd = process.cwd()) {
+  return {
+    ...process.env,
+    ...loadEnv(mode, cwd, ''),
+    ...loadDevVars(cwd),
+  }
+}
+
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadRuntimeEnv(mode, process.cwd())
   const basePath = env.VITE_BASE_PATH || (process.env.GITHUB_ACTIONS ? '/bookster/' : '/')
 
   return {
@@ -60,9 +98,25 @@ export default defineConfig(({ mode }) => {
               return
             }
 
-            res.statusCode = 200
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ success: true, localMode: true }))
+            try {
+              const { onRequestPost } = await import('./functions/api/delete-account.js')
+              const request = {
+                method: req.method,
+                headers: new Headers(req.headers),
+              }
+              const env = loadRuntimeEnv(mode, process.cwd())
+              const response = await onRequestPost({ request, env })
+              const body = await response.text()
+              res.statusCode = response.status
+              for (const [key, value] of response.headers.entries()) {
+                res.setHeader(key, value)
+              }
+              res.end(body)
+            } catch (error) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: error.message || '탈퇴 처리에 실패했습니다.' }))
+            }
           })
 
           server.middlewares.use('/api/send-signup-email', async (req, res, next) => {
