@@ -95,4 +95,4 @@ Error: Too many subrequests by single Worker invocation.
 - (A) 무료로 코드 개선: 예산을 지금 실패 안 나는 선에서 점진적으로 올려보고,
   폴백 목록을 20~30권 이상으로 확장(가능하면 별자리/MBTI별로 다양화)
 - (B) Cloudflare Workers 유료 플랜 전환 후 예산 상향
-- (A) 먼저 시도해보고 부족하면 (B) 고려하는 순서를 권장했음.
+- (A) 먼저 시도해보고 부족하면 (B) 고려하는 순서를 권장했음
